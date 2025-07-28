@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест восстановления состояния</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ffd700;
+        }
+        
+        .status {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .section h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Тест восстановления состояния</h1>
+        
+        <div class="section">
+            <h3>💾 Управление состоянием</h3>
+            <div class="grid-2">
+                <button class="btn btn-success" onclick="saveCurrentState()">💾 Сохранить состояние</button>
+                <button class="btn" onclick="restoreState()">🔄 Восстановить состояние</button>
+                <button class="btn btn-danger" onclick="clearState()">🗑️ Очистить состояние</button>
+                <button class="btn" onclick="showState()">👁️ Показать состояние</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>🎭 Тестовые анимации</h3>
+            <div class="grid-2">
+                <button class="btn" onclick="testAnimation('idle')">😐 Idle</button>
+                <button class="btn" onclick="testAnimation('talking')">💬 Talking</button>
+                <button class="btn" onclick="testAnimation('thinking_move')">🤔 Thinking</button>
+                <button class="btn" onclick="testAnimation('greeting')">👋 Greeting</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>😊 Тестовые эмоции</h3>
+            <div class="grid-2">
+                <button class="btn" onclick="testEmotion('happy')">😊 Happy</button>
+                <button class="btn" onclick="testEmotion('sad')">😢 Sad</button>
+                <button class="btn" onclick="testEmotion('angry')">😠 Angry</button>
+                <button class="btn" onclick="testEmotion('surprised')">😲 Surprised</button>
+            </div>
+        </div>
+        
+        <div class="status" id="log">
+            Готов к тестированию восстановления состояния...
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+        
+        function saveCurrentState() {
+            if (window.app && window.app.saveState) {
+                window.app.saveState();
+                log('💾 Состояние сохранено');
+            } else {
+                log('❌ Функция saveState недоступна');
+            }
+        }
+        
+        function restoreState() {
+            if (window.app && window.app.restoreLastState) {
+                window.app.restoreLastState();
+                log('🔄 Состояние восстановлено');
+            } else {
+                log('❌ Функция restoreLastState недоступна');
+            }
+        }
+        
+        function clearState() {
+            try {
+                localStorage.removeItem('vrm_overlay_state');
+                log('🗑️ Состояние очищено из localStorage');
+            } catch (error) {
+                log(`❌ Ошибка очистки состояния: ${error.message}`);
+            }
+        }
+        
+        function showState() {
+            try {
+                const state = localStorage.getItem('vrm_overlay_state');
+                if (state) {
+                    const parsedState = JSON.parse(state);
+                    log('📋 Текущее состояние:');
+                    log(JSON.stringify(parsedState, null, 2));
+                } else {
+                    log('📋 Состояние не найдено в localStorage');
+                }
+            } catch (error) {
+                log(`❌ Ошибка чтения состояния: ${error.message}`);
+            }
+        }
+        
+        function testAnimation(animationName) {
+            if (window.app && window.app.playMovement) {
+                window.app.playMovement(animationName);
+                log(`🎭 Тестовая анимация: ${animationName}`);
+            } else {
+                log('❌ Функция playMovement недоступна');
+            }
+        }
+        
+        function testEmotion(emotionName) {
+            if (window.app && window.app.applyEmotion) {
+                window.app.applyEmotion(emotionName);
+                log(`😊 Тестовая эмоция: ${emotionName}`);
+            } else {
+                log('❌ Функция applyEmotion недоступна');
+            }
+        }
+        
+        // Автоматическая проверка при загрузке страницы
+        window.addEventListener('load', () => {
+            log('🚀 Страница загружена');
+            log('📋 Проверяем наличие сохраненного состояния...');
+            showState();
+        });
+        
+        // Проверяем доступность функций каждые 2 секунды
+        setInterval(() => {
+            if (window.app) {
+                if (!window.app.saveState) {
+                    log('⚠️ Функция saveState еще не доступна');
+                }
+                if (!window.app.restoreLastState) {
+                    log('⚠️ Функция restoreLastState еще не доступна');
+                }
+            } else {
+                log('⚠️ Приложение еще не инициализировано');
+            }
+        }, 2000);
+    </script>
+</body>
+</html> 

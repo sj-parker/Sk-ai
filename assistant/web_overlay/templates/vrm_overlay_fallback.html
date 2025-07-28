@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRM Fallback Overlay</title>
+    <style>
+        body {
+            background-color: transparent;
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #vrm-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+        }
+
+        #controls button {
+            margin: 2px;
+            padding: 5px 10px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #controls button:hover {
+            background: #555;
+        }
+
+        #status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Загрузка VRM модели...</div>
+    
+    <div id="controls">
+        <button onclick="toggleAnimation('idle')">Idle</button>
+        <button onclick="toggleAnimation('talking')">Talking</button>
+        <button onclick="toggleAnimation('waiting')">Waiting</button>
+        <button onclick="toggleEmotion('happy')">Happy</button>
+        <button onclick="toggleEmotion('sad')">Sad</button>
+        <button onclick="toggleEmotion('angry')">Angry</button>
+        <button onclick="toggleEmotion('surprised')">Surprised</button>
+        <button onclick="resetCamera()">Reset Camera</button>
+    </div>
+
+    <div id="status">Статус: Загрузка...</div>
+
+    <div id="vrm-container"></div>
+
+    <!-- Three.js - используем стабильную версию -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        // SHIM для глобального OrbitControls (three.js r150+)
+        if (typeof OrbitControls === 'undefined') {
+            for (const key in window) {
+                if (
+                    window[key] &&
+                    typeof window[key] === 'function' &&
+                    window[key].name === 'OrbitControls'
+                ) {
+                    window.OrbitControls = window[key];
+                    break;
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.0.0/lib/three-vrm.min.js"></script>
+    
+    <script>
+        let scene, camera, renderer, controls;
+        let vrmModel = null;
+        let currentAnimation = 'idle';
+        let currentEmotion = null;
+        let emotionTimeout = null;
+        
+        // Настройки
+        const config = {
+            vrmPath: '{{ vrm_model_path }}',
+            wsHost: '{{ ws_host }}',
+            wsPort: '{{ ws_port }}',
+            emotionDuration: {{ emotion_duration_ms or 2000 }},
+            cameraDistance: 2,
+            modelScale: 1.0,
+            modelPosition: { x: 0, y: -1, z: 0 }
+        };
+
+        // Эмоции
+        const emotions = {
+            happy: { morphTarget: 'happy', weight: 1.0 },
+            sad: { morphTarget: 'sad', weight: 1.0 },
+            angry: { morphTarget: 'angry', weight: 1.0 },
+            surprised: { morphTarget: 'surprised', weight: 1.0 }
+        };
+
+        function init() {
+            // Проверяем, загружен ли Three.js
+            if (typeof THREE === 'undefined') {
+                updateStatus('Ошибка: Three.js не загружен', true);
+                return;
+            }
+
+            updateStatus('Three.js загружен, создание сцены...');
+            
+            // Создаем сцену
+            scene = new THREE.Scene();
+            scene.background = null; // Прозрачный фон
+
+            // Создаем камеру
+            camera = new THREE.PerspectiveCamera(
+                75, 
+                window.innerWidth / window.innerHeight, 
+                0.1, 
+                1000
+            );
+            camera.position.set(0, 0, config.cameraDistance);
+
+            // Создаем рендерер
+            renderer = new THREE.WebGLRenderer({ 
+                alpha: true, 
+                antialias: true 
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+
+            // Добавляем рендерер в контейнер
+            document.getElementById('vrm-container').appendChild(renderer.domElement);
+
+            // Добавляем освещение
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            // Создаем простую анимацию без VRM
+            createSimpleAnimation();
+
+            // Запускаем анимационный цикл
+            animate();
+
+            // Обработчик изменения размера окна
+            window.addEventListener('resize', onWindowResize);
+
+            // Подключаемся к WebSocket
+            connectWebSocket();
+
+            controls = new OrbitControls(camera, renderer.domElement);
+        }
+
+        function createSimpleAnimation() {
+            // Создаем более интересную геометрию
+            const geometry = new THREE.SphereGeometry(1, 64, 64);
+            
+            // Создаем градиентную текстуру
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            // Градиент от центра к краям
+            const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+            gradient.addColorStop(0, '#4facfe');
+            gradient.addColorStop(0.5, '#00f2fe');
+            gradient.addColorStop(1, '#43e97b');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 256, 256);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            
+            const material = new THREE.MeshPhongMaterial({ 
+                map: texture,
+                transparent: true,
+                opacity: 0.9,
+                shininess: 100
+            });
+            
+            const sphere = new THREE.Mesh(geometry, material);
+            sphere.position.set(0, 0, 0);
+            scene.add(sphere);
+
+            // Добавляем дополнительное освещение
+            const pointLight = new THREE.PointLight(0xffffff, 1, 10);
+            pointLight.position.set(2, 2, 2);
+            scene.add(pointLight);
+
+            // Создаем простую анимацию
+            vrmModel = {
+                scene: sphere,
+                humanoid: null,
+                morphTargetDictionary: null,
+                animationManager: null
+            };
+
+            // Скрываем загрузку
+            document.getElementById('loading').classList.add('hidden');
+            updateStatus('Простая анимация создана. VRM модель не загружена.');
+        }
+
+        function toggleAnimation(animationName) {
+            if (!vrmModel) return;
+
+            currentAnimation = animationName;
+            updateStatus(`Статус: ${animationName}`);
+            
+            // Простая анимация сферы
+            if (vrmModel.scene) {
+                if (animationName === 'talking') {
+                    // Пульсация при разговоре
+                    vrmModel.scene.scale.setScalar(1 + Math.sin(Date.now() * 0.01) * 0.1);
+                    // Добавляем вращение
+                    vrmModel.scene.rotation.y += 0.03;
+                } else if (animationName === 'waiting') {
+                    // Нетерпеливое движение - покачивание
+                    vrmModel.scene.rotation.x = Math.sin(Date.now() * 0.005) * 0.3;
+                    vrmModel.scene.rotation.y += 0.02;
+                } else {
+                    // Idle - плавное вращение
+                    vrmModel.scene.scale.setScalar(1);
+                    vrmModel.scene.rotation.y += 0.01;
+                }
+            }
+        }
+
+        function toggleEmotion(emotionName) {
+            if (!vrmModel) return;
+
+            // Создаем новую текстуру для эмоции
+            if (vrmModel.scene && vrmModel.scene.material) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                
+                const colors = {
+                    happy: ['#ff6b6b', '#ffd93d', '#6bcf7f'],
+                    sad: ['#4dabf7', '#339af0', '#228be6'],
+                    angry: ['#ff6b6b', '#fa5252', '#e03131'],
+                    surprised: ['#ffd43b', '#fcc419', '#fab005']
+                };
+                
+                const emotionColors = colors[emotionName] || colors.happy;
+                const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+                gradient.addColorStop(0, emotionColors[0]);
+                gradient.addColorStop(0.5, emotionColors[1]);
+                gradient.addColorStop(1, emotionColors[2]);
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 256, 256);
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                vrmModel.scene.material.map = texture;
+                vrmModel.scene.material.needsUpdate = true;
+                
+                currentEmotion = emotionName;
+                
+                // Автоматически возвращаемся к исходной текстуре
+                if (emotionTimeout) clearTimeout(emotionTimeout);
+                emotionTimeout = setTimeout(() => {
+                    if (vrmModel.scene && vrmModel.scene.material) {
+                        // Возвращаем исходную текстуру
+                        const originalCanvas = document.createElement('canvas');
+                        originalCanvas.width = 256;
+                        originalCanvas.height = 256;
+                        const originalCtx = originalCanvas.getContext('2d');
+                        
+                        const originalGradient = originalCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+                        originalGradient.addColorStop(0, '#4facfe');
+                        originalGradient.addColorStop(0.5, '#00f2fe');
+                        originalGradient.addColorStop(1, '#43e97b');
+                        
+                        originalCtx.fillStyle = originalGradient;
+                        originalCtx.fillRect(0, 0, 256, 256);
+                        
+                        const originalTexture = new THREE.CanvasTexture(originalCanvas);
+                        vrmModel.scene.material.map = originalTexture;
+                        vrmModel.scene.material.needsUpdate = true;
+                        currentEmotion = null;
+                    }
+                }, config.emotionDuration);
+            }
+        }
+
+        function resetCamera() {
+            camera.position.set(0, 0, config.cameraDistance);
+            if (controls) controls.reset();
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function connectWebSocket() {
+            const ws = new WebSocket(`ws://${config.wsHost}:${config.wsPort}`);
+            
+            ws.onopen = () => {
+                console.log('WebSocket подключен');
+                updateStatus('WebSocket подключен. Статус: Idle');
+            };
+            
+            ws.onmessage = (event) => {
+                const msg = event.data;
+                console.log('Получено сообщение:', msg);
+                
+                if (msg === "start") {
+                    toggleAnimation('talking');
+                } else if (msg === "stop") {
+                    toggleAnimation('idle');
+                } else if (msg === "waiting") {
+                    toggleAnimation('waiting');
+                } else if (msg.startsWith("emotion:")) {
+                    const emotion = msg.split(":")[1];
+                    toggleEmotion(emotion);
+                }
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket отключен, переподключение...');
+                setTimeout(connectWebSocket, 1000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket ошибка:', error);
+            };
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Простая анимация
+            if (vrmModel && vrmModel.scene) {
+                if (currentAnimation === 'idle') {
+                    vrmModel.scene.rotation.y += 0.005;
+                }
+            }
+            
+            if (controls) controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Инициализация при загрузке страницы
+        window.addEventListener('load', () => {
+            setTimeout(init, 100);
+        });
+    </script>
+</body>
+</html> 

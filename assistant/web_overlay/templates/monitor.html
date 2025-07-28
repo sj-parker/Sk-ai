@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Assist Monitor</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        body { font-family: Arial, sans-serif; background: #181c20; color: #eee; }
+        h2 { margin-top: 2em; }
+        .ok { color: #0f0; }
+        .fail { color: #f44; }
+        .block { background: #23272b; border-radius: 8px; padding: 1em; margin-bottom: 1em; }
+        .mono { font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Assist Monitor</h1>
+    <div class="block">
+        <b>Время сервера:</b> <span id="time"></span><br>
+        <b>Аптайм:</b> <span id="uptime"></span><br>
+        <b>Статус модулей:</b>
+        <span id="modules"></span>
+        <button onclick="runHealthcheck()">Healthcheck</button>
+        <span id="healthcheck-result"></span>
+    </div>
+    <div class="block">
+        <canvas id="queueChart" height="80"></canvas>
+    </div>
+    <div class="block">
+        <h2>Очередь сообщений</h2>
+        <ul id="queue"></ul>
+    </div>
+    <div class="block">
+        <h2>Последние ответы</h2>
+        <ul id="answers"></ul>
+    </div>
+    <div class="block">
+        <h2>Ошибки</h2>
+        <ul id="errors"></ul>
+    </div>
+    <div class="block">
+        <h2>Время этапов последнего запроса</h2>
+        <div id="timing"></div>
+    </div>
+    <div class="block">
+        <button onclick="togglePrompt()" id="prompt-btn">Показать последний промпт LLM</button>
+        <div id="llm-prompt-block" style="display:none; max-height:400px; overflow:auto; background:#181c20; border:1px solid #444; border-radius:8px; margin-top:1em; padding:1em;">
+            <pre id="llm-prompt" style="white-space:pre-wrap; color:#b5e853;"></pre>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let serverStart = Date.now();
+        let queueChart;
+        async function update() {
+            const resp = await fetch('/api/state');
+            const data = await resp.json();
+            document.getElementById('time').textContent = data.time;
+            // Аптайм
+            if (!window._serverStart) window._serverStart = Date.now();
+            const now = Date.now();
+            const uptimeSec = Math.floor((now - window._serverStart) / 1000);
+            const h = Math.floor(uptimeSec / 3600);
+            const m = Math.floor((uptimeSec % 3600) / 60);
+            const s = uptimeSec % 60;
+            document.getElementById('uptime').textContent = `${h}ч ${m}м ${s}с`;
+            // Модули
+            let mods = [];
+            for (const [k, v] of Object.entries(data.modules)) {
+                mods.push(`<b>${k}</b>: <span class="${v ? 'ok' : 'fail'}">${v ? 'OK' : 'OFF'}</span>`);
+            }
+            document.getElementById('modules').innerHTML = mods.join(' | ');
+            // Очередь
+            document.getElementById('queue').innerHTML = data.queue.map(m => `<li><span class="mono">[${m.timestamp}]</span> <b>${m.source}</b> <i>${m.user}</i>: ${m.text}</li>`).join('');
+            // Ответы
+            document.getElementById('answers').innerHTML = data.last_answers.map(m => `<li><span class="mono">[${m.timestamp}]</span> <b>${m.source}</b> <i>${m.user}</i>: ${m.text}</li>`).join('');
+            // Ошибки
+            document.getElementById('errors').innerHTML = data.errors.map(e => `<li><span class="mono">[${e.timestamp}]</span> ${e.error}</li>`).join('');
+            // График очереди
+            const queueTimes = data.queue.map(m => m.timestamp);
+            const queueLens = data.queue.map((_, i) => i + 1);
+            if (!queueChart) {
+                const ctx = document.getElementById('queueChart').getContext('2d');
+                queueChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: queueTimes,
+                        datasets: [{
+                            label: 'Длина очереди',
+                            data: queueLens,
+                            borderColor: 'rgba(75,192,192,1)',
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { x: { display: false } }
+                    }
+                });
+            } else {
+                queueChart.data.labels = queueTimes;
+                queueChart.data.datasets[0].data = queueLens;
+                queueChart.update();
+            }
+            updateTiming();
+        }
+        async function updateTiming() {
+            const resp = await fetch('/api/timing');
+            const timing = await resp.json();
+            let html = '';
+            if (timing.length === 0) {
+                html = '<i>Нет данных</i>';
+            } else {
+                for (let i = timing.length - 1; i >= 0; i--) {
+                    const t = timing[i];
+                    html += `<b>Запрос #${timing.length - i}</b> (total: <b>${t.total.toFixed(2)}s</b>)<br>`;
+                    html += '<table style="width:100%;margin-bottom:1em;background:#222;border-radius:6px;">';
+                    html += '<tr><th style="text-align:left">Этап</th><th style="text-align:right">Время, сек</th></tr>';
+                    for (const step of t.steps) {
+                        html += `<tr><td>${step.name}</td><td style="text-align:right">${step.duration.toFixed(2)}</td></tr>`;
+                    }
+                    html += '</table>';
+                }
+            }
+            document.getElementById('timing').innerHTML = html;
+        }
+        async function runHealthcheck() {
+            document.getElementById('healthcheck-result').textContent = '...';
+            const resp = await fetch('/api/health');
+            const data = await resp.json();
+            let html = `<b>Healthcheck:</b> `;
+            html += data.status === 'ok' ? '<span class="ok">OK</span>' : '<span class="fail">FAIL</span>';
+            html += '<br>Модули: ' + Object.entries(data.modules).map(([k,v]) => `${k}: <b class="${v?'ok':'fail'}">${v?'OK':'OFF'}</b>`).join(' | ');
+            html += `<br>temp_audio: <b class="${data.temp_audio?'ok':'fail'}">${data.temp_audio?'OK':'FAIL'}</b>`;
+            html += `<br>user_data_dir: <b class="${data.user_data_dir?'ok':'fail'}">${data.user_data_dir?'OK':'FAIL'}</b>`;
+            html += `<br>config: <b class="${data.config?'ok':'fail'}">${data.config?'OK':'FAIL'}</b>`;
+            html += `<br>overlay_ws: <b class="${data.overlay_ws?'ok':'fail'}">${data.overlay_ws?'OK':'FAIL'}</b>`;
+            document.getElementById('healthcheck-result').innerHTML = html;
+        }
+        async function loadPrompt() {
+            const btn = document.getElementById('prompt-btn');
+            const block = document.getElementById('llm-prompt-block');
+            const pre = document.getElementById('llm-prompt');
+            if (block.style.display === 'none') {
+                btn.textContent = 'Скрыть последний промпт LLM';
+                block.style.display = '';
+                pre.textContent = 'Загрузка...';
+                const resp = await fetch('/api/llm_prompt');
+                if (resp.ok) {
+                    pre.textContent = await resp.text();
+                } else {
+                    pre.textContent = 'Ошибка загрузки';
+                }
+            } else {
+                btn.textContent = 'Показать последний промпт LLM';
+                block.style.display = 'none';
+            }
+        }
+        function togglePrompt() { loadPrompt(); }
+        setInterval(update, 2000);
+        update();
+        updateTiming();
+    </script>
+</body>
+</html> 

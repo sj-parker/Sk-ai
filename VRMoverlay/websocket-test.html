@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .status {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .status.connected {
+            border-left: 4px solid #28a745;
+        }
+
+        .status.disconnected {
+            border-left: 4px solid #dc3545;
+        }
+
+        .status.connecting {
+            border-left: 4px solid #ffc107;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .log-entry.info {
+            color: #17a2b8;
+        }
+
+        .log-entry.success {
+            color: #28a745;
+        }
+
+        .log-entry.error {
+            color: #dc3545;
+        }
+
+        .log-entry.warning {
+            color: #ffc107;
+        }
+
+        .settings {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .setting-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .clear-btn {
+            background: #6c757d;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 WebSocket Test</h1>
+
+        <div class="settings">
+            <div class="setting-group">
+                <label for="wsHost">WebSocket Host:</label>
+                <input type="text" id="wsHost" value="192.168.1.4" placeholder="IP адрес ассистента">
+            </div>
+            <div class="setting-group">
+                <label for="wsPort">WebSocket Port:</label>
+                <input type="number" id="wsPort" value="31992" placeholder="Порт">
+            </div>
+        </div>
+
+        <div class="status" id="status">
+            <h3>Статус: Отключен</h3>
+            <p>Нажмите "Подключиться" для начала тестирования</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn" id="connectBtn">🔌 Подключиться</button>
+            <button class="btn" id="disconnectBtn" disabled>❌ Отключиться</button>
+            <button class="btn" id="pingBtn" disabled>🏓 Ping</button>
+            <button class="btn" id="testEmotionBtn" disabled>😊 Тест эмоции</button>
+            <button class="btn" id="testAnimationBtn" disabled>🎭 Тест анимации</button>
+            <button class="btn clear-btn" id="clearLogBtn">🗑️ Очистить лог</button>
+        </div>
+
+        <div class="log" id="log">
+            Готов к тестированию WebSocket соединения...
+        </div>
+    </div>
+
+    <script>
+        class WebSocketTester {
+            constructor() {
+                this.ws = null;
+                this.isConnected = false;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectDelay = 2000;
+                
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.log('info', 'WebSocket тестер инициализирован');
+            }
+
+            setupEventListeners() {
+                document.getElementById('connectBtn').addEventListener('click', () => {
+                    this.connect();
+                });
+
+                document.getElementById('disconnectBtn').addEventListener('click', () => {
+                    this.disconnect();
+                });
+
+                document.getElementById('pingBtn').addEventListener('click', () => {
+                    this.sendPing();
+                });
+
+                document.getElementById('testEmotionBtn').addEventListener('click', () => {
+                    this.testEmotion();
+                });
+
+                document.getElementById('testAnimationBtn').addEventListener('click', () => {
+                    this.testAnimation();
+                });
+
+                document.getElementById('clearLogBtn').addEventListener('click', () => {
+                    this.clearLog();
+                });
+            }
+
+            connect() {
+                const host = document.getElementById('wsHost').value;
+                const port = document.getElementById('wsPort').value;
+                
+                if (!host || !port) {
+                    this.log('error', 'Введите host и port');
+                    return;
+                }
+
+                try {
+                    const wsUrl = `ws://${host}:${port}`;
+                    this.log('info', `Подключение к: ${wsUrl}`);
+                    this.updateStatus('connecting');
+
+                    this.ws = new WebSocket(wsUrl);
+
+                    this.ws.onopen = () => {
+                        this.log('success', '✅ WebSocket подключен!');
+                        this.isConnected = true;
+                        this.reconnectAttempts = 0;
+                        this.updateStatus('connected');
+                        this.updateButtons();
+                        
+                        // Отправляем идентификатор клиента
+                        this.sendMessage({
+                            type: 'vrm_client',
+                            client: 'websocket_test',
+                            version: '1.0',
+                            reconnect: false
+                        });
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.log('info', `📨 Получено: ${JSON.stringify(message, null, 2)}`);
+                        } catch (error) {
+                            this.log('info', `📨 Получено (не JSON): ${event.data}`);
+                        }
+                    };
+
+                    this.ws.onclose = (event) => {
+                        this.log('warning', `❌ Соединение закрыто. Код: ${event.code}, Причина: ${event.reason}`);
+                        this.isConnected = false;
+                        this.updateStatus('disconnected');
+                        this.updateButtons();
+                        
+                        if (event.code !== 1000) {
+                            this.scheduleReconnect();
+                        }
+                    };
+
+                    this.ws.onerror = (error) => {
+                        this.log('error', `❌ WebSocket ошибка: ${error}`);
+                        this.updateStatus('disconnected');
+                    };
+
+                } catch (error) {
+                    this.log('error', `❌ Ошибка создания WebSocket: ${error.message}`);
+                }
+            }
+
+            disconnect() {
+                if (this.ws) {
+                    this.ws.close(1000, 'Manual disconnect');
+                    this.ws = null;
+                }
+                this.isConnected = false;
+                this.updateStatus('disconnected');
+                this.updateButtons();
+                this.log('info', 'Отключение выполнено');
+            }
+
+            sendMessage(message) {
+                if (this.ws && this.isConnected) {
+                    this.ws.send(JSON.stringify(message));
+                    this.log('info', `📤 Отправлено: ${JSON.stringify(message)}`);
+                } else {
+                    this.log('error', 'WebSocket не подключен');
+                }
+            }
+
+            sendPing() {
+                this.sendMessage({
+                    type: 'ping',
+                    timestamp: Date.now()
+                });
+            }
+
+            testEmotion() {
+                this.sendMessage({
+                    type: 'emotion',
+                    emotion: 'happy',
+                    intensity: 0.8,
+                    duration: 3000,
+                    priority: 5
+                });
+            }
+
+            testAnimation() {
+                this.sendMessage({
+                    type: 'animation',
+                    animation: 'greeting',
+                    duration: 5000
+                });
+            }
+
+            scheduleReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+                    this.log('warning', `🔄 Попытка переподключения ${this.reconnectAttempts}/${this.maxReconnectAttempts} через ${delay}ms`);
+                    
+                    setTimeout(() => {
+                        this.connect();
+                    }, delay);
+                } else {
+                    this.log('error', '❌ Превышено максимальное количество попыток переподключения');
+                }
+            }
+
+            updateStatus(status) {
+                const statusEl = document.getElementById('status');
+                statusEl.className = `status ${status}`;
+                
+                switch (status) {
+                    case 'connected':
+                        statusEl.innerHTML = '<h3>Статус: Подключен ✅</h3><p>WebSocket соединение активно</p>';
+                        break;
+                    case 'disconnected':
+                        statusEl.innerHTML = '<h3>Статус: Отключен ❌</h3><p>WebSocket соединение не активно</p>';
+                        break;
+                    case 'connecting':
+                        statusEl.innerHTML = '<h3>Статус: Подключение 🔄</h3><p>Выполняется подключение...</p>';
+                        break;
+                }
+            }
+
+            updateButtons() {
+                const connectBtn = document.getElementById('connectBtn');
+                const disconnectBtn = document.getElementById('disconnectBtn');
+                const pingBtn = document.getElementById('pingBtn');
+                const testEmotionBtn = document.getElementById('testEmotionBtn');
+                const testAnimationBtn = document.getElementById('testAnimationBtn');
+
+                if (this.isConnected) {
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                    pingBtn.disabled = false;
+                    testEmotionBtn.disabled = false;
+                    testAnimationBtn.disabled = false;
+                } else {
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+                    pingBtn.disabled = true;
+                    testEmotionBtn.disabled = true;
+                    testAnimationBtn.disabled = true;
+                }
+            }
+
+            log(type, message) {
+                const logEl = document.getElementById('log');
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                entry.textContent = `[${timestamp}] ${message}`;
+                logEl.appendChild(entry);
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+
+            clearLog() {
+                document.getElementById('log').innerHTML = 'Лог очищен...';
+            }
+        }
+
+        // Инициализация тестера при загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            window.wsTester = new WebSocketTester();
+        });
+    </script>
+</body>
+</html> 

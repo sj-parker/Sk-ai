@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRM Performance Settings</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .section h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .setting-row label {
+            min-width: 200px;
+            margin-bottom: 0;
+        }
+
+        .setting-row input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .setting-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .setting-row input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #667eea;
+        }
+
+        .setting-row select {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 120px;
+        }
+
+        .value-display {
+            min-width: 60px;
+            text-align: right;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .performance-mode {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .mode-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .mode-btn h4 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+        }
+
+        .mode-btn p {
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .stat-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h4 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+
+        .info-box p {
+            margin: 0;
+            color: #1565c0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Настройки производительности VRM</h1>
+            <p>Оптимизируйте производительность для вашего оборудования</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <h4>💡 Информация</h4>
+                <p>Система автоматически определяет характеристики вашего ПК и применяет оптимальные настройки. Вы можете вручную настроить параметры или выбрать предустановленные режимы.</p>
+            </div>
+
+            <!-- Режимы производительности -->
+            <div class="section">
+                <h3>⚙️ Режим производительности</h3>
+                <div class="performance-mode">
+                    <div class="mode-btn" data-mode="low">
+                        <h4>🖥️ Низкий</h4>
+                        <p>Для слабых ПК</p>
+                    </div>
+                    <div class="mode-btn" data-mode="medium">
+                        <h4>💻 Средний</h4>
+                        <p>Сбалансированный</p>
+                    </div>
+                    <div class="mode-btn" data-mode="high">
+                        <h4>🚀 Высокий</h4>
+                        <p>Максимальное качество</p>
+                    </div>
+                    <div class="mode-btn" data-mode="auto">
+                        <h4>🤖 Авто</h4>
+                        <p>Автоматический выбор</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <div class="section">
+                <h3>📊 Статистика производительности</h3>
+                <div class="stats">
+                    <div class="stat-card">
+                        <h4>Текущий FPS</h4>
+                        <div class="stat-value" id="currentFPS">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Средний FPS</h4>
+                        <div class="stat-value" id="avgFPS">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Режим</h4>
+                        <div class="stat-value" id="currentMode">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>GPU</h4>
+                        <div class="stat-value" id="gpuInfo">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Настройки рендеринга -->
+            <div class="section">
+                <h3>🎨 Настройки рендеринга</h3>
+                
+                <div class="setting-group">
+                    <div class="setting-row">
+                        <label>Масштаб рендеринга:</label>
+                        <input type="range" id="renderScale" min="0.5" max="1.0" step="0.05" value="1.0">
+                        <div class="value-display" id="renderScaleValue">100%</div>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Максимальный FPS:</label>
+                        <input type="range" id="maxFPS" min="15" max="120" step="5" value="60">
+                        <div class="value-display" id="maxFPSValue">60</div>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Включить VSync:</label>
+                        <input type="checkbox" id="enableVSync" checked>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Сглаживание (AA):</label>
+                        <input type="checkbox" id="enableAntialiasing" checked>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Качество теней:</label>
+                        <select id="shadowQuality">
+                            <option value="low">Низкое</option>
+                            <option value="medium" selected>Среднее</option>
+                            <option value="high">Высокое</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Настройки анимаций -->
+            <div class="section">
+                <h3>🎭 Настройки анимаций</h3>
+                
+                <div class="setting-group">
+                    <div class="setting-row">
+                        <label>Частота обновления анимаций:</label>
+                        <input type="range" id="animationUpdateRate" min="15" max="60" step="5" value="60">
+                        <div class="value-display" id="animationUpdateRateValue">60</div>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Сложные анимации:</label>
+                        <input type="checkbox" id="enableComplexAnimations" checked>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Микродвижения:</label>
+                        <input type="checkbox" id="enableMicroMovements" checked>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Дыхание:</label>
+                        <input type="checkbox" id="enableBreathing" checked>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Настройки освещения -->
+            <div class="section">
+                <h3>💡 Настройки освещения</h3>
+                
+                <div class="setting-group">
+                    <div class="setting-row">
+                        <label>Включить тени:</label>
+                        <input type="checkbox" id="enableShadows" checked>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Размер карты теней:</label>
+                        <select id="shadowMapSize">
+                            <option value="512">512 (Низкое)</option>
+                            <option value="1024" selected>1024 (Среднее)</option>
+                            <option value="2048">2048 (Высокое)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Качество освещения:</label>
+                        <select id="lightQuality">
+                            <option value="low">Низкое</option>
+                            <option value="medium" selected>Среднее</option>
+                            <option value="high">Высокое</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Действия -->
+            <div class="actions">
+                <button class="btn btn-primary" id="applySettings">✅ Применить настройки</button>
+                <button class="btn btn-secondary" id="resetSettings">🔄 Сбросить</button>
+                <button class="btn btn-secondary" id="saveSettings">💾 Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация
+        let optimizer = null;
+        let settings = {};
+
+        // Загружаем оптимизатор
+        function loadOptimizer() {
+            if (window.PerformanceOptimizer) {
+                optimizer = new PerformanceOptimizer();
+                updateUI();
+                startMonitoring();
+            } else {
+                console.error('PerformanceOptimizer не найден');
+                setTimeout(loadOptimizer, 1000);
+            }
+        }
+
+        // Обновляем UI
+        function updateUI() {
+            if (!optimizer) return;
+
+            const currentSettings = optimizer.getSettings();
+            const performanceInfo = optimizer.getPerformanceInfo();
+
+            // Обновляем значения слайдеров
+            document.getElementById('renderScale').value = currentSettings.renderScale;
+            document.getElementById('renderScaleValue').textContent = Math.round(currentSettings.renderScale * 100) + '%';
+            
+            document.getElementById('maxFPS').value = currentSettings.maxFPS;
+            document.getElementById('maxFPSValue').textContent = currentSettings.maxFPS;
+            
+            document.getElementById('animationUpdateRate').value = currentSettings.animationUpdateRate;
+            document.getElementById('animationUpdateRateValue').textContent = currentSettings.animationUpdateRate;
+
+            // Обновляем чекбоксы
+            document.getElementById('enableVSync').checked = currentSettings.enableVSync;
+            document.getElementById('enableAntialiasing').checked = currentSettings.enableAntialiasing;
+            document.getElementById('enableComplexAnimations').checked = currentSettings.enableComplexAnimations;
+            document.getElementById('enableMicroMovements').checked = currentSettings.enableMicroMovements;
+            document.getElementById('enableBreathing').checked = currentSettings.enableBreathing;
+            document.getElementById('enableShadows').checked = currentSettings.enableShadows;
+
+            // Обновляем селекты
+            document.getElementById('shadowQuality').value = currentSettings.shadowQuality;
+            document.getElementById('shadowMapSize').value = currentSettings.shadowMapSize;
+            document.getElementById('lightQuality').value = currentSettings.lightQuality;
+
+            // Обновляем режим
+            updateModeButtons(performanceInfo.mode);
+
+            // Обновляем статистику
+            document.getElementById('currentFPS').textContent = Math.round(performanceInfo.avgFPS) || '--';
+            document.getElementById('avgFPS').textContent = Math.round(performanceInfo.avgFPS) || '--';
+            document.getElementById('currentMode').textContent = performanceInfo.mode.toUpperCase();
+            
+            // Определяем GPU
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                if (debugInfo) {
+                    const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                    document.getElementById('gpuInfo').textContent = renderer.split(' ')[0] || '--';
+                }
+            }
+        }
+
+        // Обновляем кнопки режимов
+        function updateModeButtons(currentMode) {
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.mode === currentMode) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Мониторинг производительности
+        function startMonitoring() {
+            setInterval(() => {
+                if (optimizer) {
+                    updateUI();
+                }
+            }, 2000);
+        }
+
+        // Обработчики событий
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOptimizer();
+
+            // Обработчики слайдеров
+            document.getElementById('renderScale').addEventListener('input', (e) => {
+                document.getElementById('renderScaleValue').textContent = Math.round(e.target.value * 100) + '%';
+            });
+
+            document.getElementById('maxFPS').addEventListener('input', (e) => {
+                document.getElementById('maxFPSValue').textContent = e.target.value;
+            });
+
+            document.getElementById('animationUpdateRate').addEventListener('input', (e) => {
+                document.getElementById('animationUpdateRateValue').textContent = e.target.value;
+            });
+
+            // Обработчики кнопок режимов
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (optimizer) {
+                        optimizer.setPerformanceMode(btn.dataset.mode);
+                        updateUI();
+                    }
+                });
+            });
+
+            // Применить настройки
+            document.getElementById('applySettings').addEventListener('click', () => {
+                if (!optimizer) return;
+
+                const newSettings = {
+                    renderScale: parseFloat(document.getElementById('renderScale').value),
+                    maxFPS: parseInt(document.getElementById('maxFPS').value),
+                    enableVSync: document.getElementById('enableVSync').checked,
+                    enableAntialiasing: document.getElementById('enableAntialiasing').checked,
+                    shadowQuality: document.getElementById('shadowQuality').value,
+                    animationUpdateRate: parseInt(document.getElementById('animationUpdateRate').value),
+                    enableComplexAnimations: document.getElementById('enableComplexAnimations').checked,
+                    enableMicroMovements: document.getElementById('enableMicroMovements').checked,
+                    enableBreathing: document.getElementById('enableBreathing').checked,
+                    enableShadows: document.getElementById('enableShadows').checked,
+                    shadowMapSize: parseInt(document.getElementById('shadowMapSize').value),
+                    lightQuality: document.getElementById('lightQuality').value
+                };
+
+                // Применяем настройки
+                Object.entries(newSettings).forEach(([key, value]) => {
+                    optimizer.updateSetting(key, value);
+                });
+
+                alert('✅ Настройки применены!');
+            });
+
+            // Сбросить настройки
+            document.getElementById('resetSettings').addEventListener('click', () => {
+                if (optimizer) {
+                    optimizer.setPerformanceMode('auto');
+                    updateUI();
+                    alert('🔄 Настройки сброшены к автоматическим!');
+                }
+            });
+
+            // Сохранить настройки
+            document.getElementById('saveSettings').addEventListener('click', () => {
+                if (optimizer) {
+                    optimizer.saveSettings();
+                    alert('💾 Настройки сохранены!');
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

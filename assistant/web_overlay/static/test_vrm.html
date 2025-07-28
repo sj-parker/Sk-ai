@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRM Overlay Test</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #007acc;
+            text-align: center;
+        }
+        
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        
+        .test-section h2 {
+            color: #007acc;
+            margin-top: 0;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #005a9e;
+        }
+        
+        button:active {
+            background: #004080;
+        }
+        
+        .status {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        
+        .overlay-links {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .overlay-card {
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .overlay-card h3 {
+            color: #007acc;
+            margin-top: 0;
+        }
+        
+        .overlay-card a {
+            display: inline-block;
+            background: #007acc;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 10px 5px;
+        }
+        
+        .overlay-card a:hover {
+            background: #005a9e;
+        }
+        
+        .instructions {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .instructions h2 {
+            color: #007acc;
+            margin-top: 0;
+        }
+        
+        .instructions ol {
+            line-height: 1.6;
+        }
+        
+        .instructions code {
+            background: #333;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 VRM Overlay Test</h1>
+        
+        <div class="test-section">
+            <h2>📋 Инструкции по настройке</h2>
+            <div class="instructions">
+                <ol>
+                    <li>Поместите вашу VRM модель в папку <code>web_overlay/static/models/</code></li>
+                    <li>Обновите путь к модели в <code>config.yaml</code>:
+                        <br><code>VRM_OVERLAY.model_path: '/static/models/your_model.vrm'</code>
+                    </li>
+                    <li>Запустите веб-сервер: <code>python web_overlay/web_server.py</code></li>
+                    <li>Откройте один из оверлеев ниже</li>
+                    <li>В OBS добавьте источник "Браузер" с URL оверлея</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔗 Доступные оверлеи</h2>
+            <div class="overlay-links">
+                <div class="overlay-card">
+                    <h3>Базовый VRM оверлей</h3>
+                    <p>Простая версия с базовыми анимациями</p>
+                    <a href="/vrm" target="_blank">Открыть базовый оверлей</a>
+                </div>
+                <div class="overlay-card">
+                    <h3>Продвинутый VRM оверлей</h3>
+                    <p>С липсинком и расширенными возможностями</p>
+                    <a href="/vrm-advanced" target="_blank">Открыть продвинутый оверлей</a>
+                </div>
+                <div class="overlay-card">
+                    <h3>Упрощенный VRM оверлей</h3>
+                    <p>Стабильная версия с современными библиотеками</p>
+                    <a href="/vrm-simple" target="_blank">Открыть упрощенный оверлей</a>
+                </div>
+                <div class="overlay-card">
+                    <h3>Отладочный VRM оверлей</h3>
+                    <p>Для диагностики проблем с загрузкой</p>
+                    <a href="/vrm-debug" target="_blank">Открыть отладочный оверлей</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎮 Тест WebSocket команд</h2>
+            <p>Эти команды отправляются в WebSocket для управления оверлеем:</p>
+            
+            <div class="button-group">
+                <button onclick="sendCommand('start')">Start Talking</button>
+                <button onclick="sendCommand('stop')">Stop Talking</button>
+                <button onclick="sendCommand('waiting')">Waiting</button>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="sendCommand('emotion:happy')">Happy</button>
+                <button onclick="sendCommand('emotion:sad')">Sad</button>
+                <button onclick="sendCommand('emotion:angry')">Angry</button>
+                <button onclick="sendCommand('emotion:surprised')">Surprised</button>
+            </div>
+            
+            <div class="status" id="status">
+                Статус: Готов к тестированию
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔧 Тест WebSocket соединения</h2>
+            <div class="button-group">
+                <button onclick="testWebSocket()">Тест WebSocket</button>
+                <button onclick="disconnectWebSocket()">Отключить</button>
+            </div>
+            <div class="status" id="ws-status">
+                WebSocket: Не подключен
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📝 Лог сообщений</h2>
+            <div class="status" id="log" style="max-height: 200px; overflow-y: auto;">
+                Лог пуст
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let messageLog = [];
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            messageLog.push(`[${timestamp}] ${message}`);
+            if (messageLog.length > 50) {
+                messageLog.shift();
+            }
+            document.getElementById('log').textContent = messageLog.join('\n');
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = `Статус: ${message}`;
+            log(message);
+        }
+        
+        function updateWSStatus(message) {
+            document.getElementById('ws-status').textContent = `WebSocket: ${message}`;
+            log(`WS: ${message}`);
+        }
+        
+        function sendCommand(command) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(command);
+                updateStatus(`Отправлена команда: ${command}`);
+            } else {
+                updateStatus('WebSocket не подключен');
+            }
+        }
+        
+        function testWebSocket() {
+            const wsHost = window.location.hostname;
+            const wsPort = 31992; // Порт из конфигурации
+            
+            try {
+                ws = new WebSocket(`ws://${wsHost}:${wsPort}`);
+                
+                ws.onopen = () => {
+                    updateWSStatus('Подключен');
+                    updateStatus('WebSocket соединение установлено');
+                };
+                
+                ws.onmessage = (event) => {
+                    log(`Получено: ${event.data}`);
+                };
+                
+                ws.onclose = () => {
+                    updateWSStatus('Отключен');
+                    updateStatus('WebSocket соединение закрыто');
+                };
+                
+                ws.onerror = (error) => {
+                    updateWSStatus('Ошибка');
+                    updateStatus('Ошибка WebSocket соединения');
+                    log(`WS Error: ${error}`);
+                };
+                
+            } catch (error) {
+                updateWSStatus('Ошибка подключения');
+                updateStatus(`Ошибка: ${error.message}`);
+            }
+        }
+        
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+        
+        // Автоматический тест при загрузке
+        window.addEventListener('load', () => {
+            log('Страница загружена');
+            updateStatus('Готов к тестированию');
+        });
+    </script>
+</body>
+</html> 

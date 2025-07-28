@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text Overlay Test</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #status {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Text Overlay Test</h1>
+    
+    <div class="test-section">
+        <h3>WebSocket Status</h3>
+        <div id="status">Отключен</div>
+        <button onclick="connectWS()">Подключиться</button>
+        <button onclick="disconnectWS()">Отключиться</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Messages</h3>
+        <button onclick="sendTestMessage('Привет!')">Короткое сообщение</button>
+        <button onclick="sendTestMessage('Это более длинное сообщение для тестирования обновления текста.')">Длинное сообщение</button>
+        <button onclick="sendTestMessage('Первое предложение. Второе предложение. Третье предложение.')">Множественные предложения</button>
+        <button onclick="sendProgressiveMessage()">Прогрессивное сообщение</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Simulate LLM Response</h3>
+        <button onclick="simulateLLMResponse()">Симулировать ответ LLM</button>
+    </div>
+    
+    <script>
+        let ws = null;
+        const status = document.getElementById('status');
+        
+        function connectWS() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                alert('Уже подключен!');
+                return;
+            }
+            
+            ws = new WebSocket('ws://192.168.1.4:31993');
+            
+            ws.onopen = () => {
+                status.textContent = 'Подключен';
+                status.style.color = '#4CAF50';
+            };
+            
+            ws.onclose = () => {
+                status.textContent = 'Отключен';
+                status.style.color = '#f44336';
+            };
+            
+            ws.onerror = (error) => {
+                status.textContent = 'Ошибка';
+                status.style.color = '#f44336';
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        function disconnectWS() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+        
+        function sendTestMessage(message) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(message);
+                console.log('Отправлено:', message);
+            } else {
+                alert('WebSocket не подключен!');
+            }
+        }
+        
+        function sendProgressiveMessage() {
+            const messages = [
+                'Привет!',
+                'Привет! Как дела?',
+                'Привет! Как дела? Надеюсь, хорошо.',
+                'Привет! Как дела? Надеюсь, хорошо. У меня все отлично!'
+            ];
+            
+            let index = 0;
+            const interval = setInterval(() => {
+                if (index < messages.length) {
+                    sendTestMessage(messages[index]);
+                    index++;
+                } else {
+                    clearInterval(interval);
+                }
+            }, 1000);
+        }
+        
+        function simulateLLMResponse() {
+            const response = 'Ох, ну и сразу с просьбами... Как будто у меня нет дел. Ладно, раз уж ты так просишь... История? *Тихий смешок, будто слышен скрип шестеренок.* Есть одна. Она... не для слабонервных.';
+            
+            // Симулируем постепенное появление текста
+            let currentText = '';
+            const words = response.split(' ');
+            let wordIndex = 0;
+            
+            const interval = setInterval(() => {
+                if (wordIndex < words.length) {
+                    currentText += words[wordIndex] + ' ';
+                    sendTestMessage(currentText.trim());
+                    wordIndex++;
+                } else {
+                    clearInterval(interval);
+                }
+            }, 200);
+        }
+        
+        // Автоподключение при загрузке
+        connectWS();
+    </script>
+</body>
+</html> 

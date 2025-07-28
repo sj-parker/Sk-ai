@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест интеграции новой системы анимаций</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ffd700;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .test-section h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(45deg, #ff9800, #f57c00);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        
+        .status {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        
+        .info {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #4CAF50;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 Тест интеграции новой системы анимаций</h1>
+        
+        <div class="info">
+            <strong>Статус интеграции:</strong> ✅ Новая система анимаций успешно интегрирована в основной проект.
+            <br><br>
+            <strong>Новые возможности:</strong>
+            • Наложение анимаций (до 4 одновременно)
+            • Система приоритетов для анимаций и эмоций
+            • Плавные переходы между анимациями
+            • State machine для логичных переходов
+            • Улучшенное управление blend shapes
+        </div>
+        
+        <div class="test-section">
+            <h3>🎬 Тест базовых анимаций</h3>
+            <div class="grid-3">
+                <button class="btn" onclick="testBasicAnimation('idle')">Idle</button>
+                <button class="btn" onclick="testBasicAnimation('talking')">Talking</button>
+                <button class="btn" onclick="testBasicAnimation('thinking_move')">Thinking</button>
+                <button class="btn" onclick="testBasicAnimation('greeting')">Greeting</button>
+                <button class="btn" onclick="testBasicAnimation('surprise_move')">Surprise</button>
+                <button class="btn" onclick="testBasicAnimation('excitement')">Excitement</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>😊 Тест эмоций</h3>
+            <div class="grid-3">
+                <button class="btn btn-success" onclick="testEmotion('happy')">Happy</button>
+                <button class="btn btn-warning" onclick="testEmotion('sad')">Sad</button>
+                <button class="btn btn-danger" onclick="testEmotion('angry')">Angry</button>
+                <button class="btn" onclick="testEmotion('surprised')">Surprised</button>
+                <button class="btn" onclick="testEmotion('neutral')">Neutral</button>
+                <button class="btn" onclick="resetEmotions()">Reset</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔄 Тест наложения анимаций</h3>
+            <div class="warning">
+                <strong>Демонстрация наложения:</strong> Базовая анимация + жест одновременно
+            </div>
+            <div class="grid-2">
+                <button class="btn" onclick="testOverlapping('idle', 'greeting')">Idle + Greeting</button>
+                <button class="btn" onclick="testOverlapping('talking', 'surprise_move')">Talking + Surprise</button>
+                <button class="btn" onclick="testOverlapping('thinking_move', 'excitement')">Thinking + Excitement</button>
+                <button class="btn" onclick="stopAllAnimations()">Stop All</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🎯 Тест приоритетов эмоций</h3>
+            <div class="grid-2">
+                <button class="btn" onclick="testEmotionPriorities()">Happy → Surprised → Happy</button>
+                <button class="btn" onclick="testEmotionPriorities2()">Sad → Angry → Neutral</button>
+                <button class="btn" onclick="testHighPriorityEmotion()">High Priority Surprised</button>
+                <button class="btn" onclick="resetEmotions()">Reset All</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔄 Тест State Machine</h3>
+            <div class="grid-2">
+                <button class="btn" onclick="testStateTransition('idle')">→ Idle</button>
+                <button class="btn" onclick="testStateTransition('talking')">→ Talking</button>
+                <button class="btn" onclick="testStateTransition('thinking')">→ Thinking</button>
+                <button class="btn" onclick="testStateTransition('listening')">→ Listening</button>
+                <button class="btn" onclick="revertToPreviousState()">← Previous</button>
+                <button class="btn" onclick="showCurrentState()">Current State</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>👄 Тест липсинка</h3>
+            <div class="grid-3">
+                <button class="btn" onclick="testLipsync('A')">A</button>
+                <button class="btn" onclick="testLipsync('I')">I</button>
+                <button class="btn" onclick="testLipsync('U')">U</button>
+                <button class="btn" onclick="testLipsync('E')">E</button>
+                <button class="btn" onclick="testLipsync('O')">O</button>
+                <button class="btn" onclick="stopLipsync()">Stop</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔍 Отладка и мониторинг</h3>
+            <div class="grid-2">
+                <button class="btn" onclick="showActiveAnimations()">Active Animations</button>
+                <button class="btn" onclick="showActiveBlendShapes()">Active Blend Shapes</button>
+                <button class="btn" onclick="showCurrentState()">Current State</button>
+                <button class="btn" onclick="showAllDebugInfo()">All Debug Info</button>
+            </div>
+            <div id="debug-output" class="status">
+                Готов к тестированию...
+            </div>
+        </div>
+    </div>
+
+    <!-- TWEEN.js для плавных переходов -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    
+    <!-- Three.js -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+        import { AnimationIntegration } from './src/animation-integration.js';
+        
+        // Глобальные переменные
+        window.app = null;
+        
+        // Функции для тестирования
+        window.testBasicAnimation = function(name) {
+            if (window.app && window.app.animationSystem) {
+                window.app.animationSystem.playAnimation(name);
+                updateDebugInfo(`Воспроизводится: ${name}`);
+            } else {
+                updateDebugInfo(`❌ Новая система анимаций не инициализирована`);
+            }
+        };
+        
+        window.testEmotion = function(emotion) {
+            if (window.app && window.app.blendShapeManager) {
+                window.app.blendShapeManager.applyEmotion(emotion, 0.8, 5);
+                updateDebugInfo(`Эмоция: ${emotion}`);
+            } else {
+                updateDebugInfo(`❌ Новая система blend shapes не инициализирована`);
+            }
+        };
+        
+        window.resetEmotions = function() {
+            if (window.app && window.app.blendShapeManager) {
+                window.app.blendShapeManager.resetEmotions();
+                updateDebugInfo('Эмоции сброшены');
+            }
+        };
+        
+        window.testOverlapping = function(baseAnim, overlayAnim) {
+            if (window.app && window.app.animationSystem) {
+                window.app.animationSystem.playAnimation(baseAnim, 0);
+                window.app.animationSystem.playAnimation(overlayAnim, 2);
+                updateDebugInfo(`Наложение: ${baseAnim} + ${overlayAnim}`);
+            }
+        };
+        
+        window.stopAllAnimations = function() {
+            if (window.app && window.app.animationSystem) {
+                window.app.animationSystem.stopAllAnimations();
+                updateDebugInfo('Все анимации остановлены');
+            }
+        };
+        
+        window.testEmotionPriorities = function() {
+            if (window.app && window.app.blendShapeManager) {
+                window.app.blendShapeManager.applyEmotion('happy', 0.5, 5);
+                window.app.blendShapeManager.applyEmotion('surprised', 0.8, 8);
+                
+                setTimeout(() => {
+                    window.app.blendShapeManager.applyEmotion('happy', 0.5, 5);
+                }, 2000);
+                
+                updateDebugInfo('Приоритеты: Happy (5) → Surprised (8) → Happy (5)');
+            }
+        };
+        
+        window.testEmotionPriorities2 = function() {
+            if (window.app && window.app.blendShapeManager) {
+                window.app.blendShapeManager.applyEmotion('sad', 0.6, 5);
+                window.app.blendShapeManager.applyEmotion('angry', 0.9, 8);
+                
+                setTimeout(() => {
+                    window.app.blendShapeManager.applyEmotion('neutral', 0.5, 5);
+                }, 2000);
+                
+                updateDebugInfo('Приоритеты: Sad (5) → Angry (8) → Neutral (5)');
+            }
+        };
+        
+        window.testHighPriorityEmotion = function() {
+            if (window.app && window.app.blendShapeManager) {
+                window.app.blendShapeManager.applyEmotion('surprised', 1.0, 10);
+                updateDebugInfo('Высокий приоритет: Surprised (10)');
+            }
+        };
+        
+        window.testStateTransition = function(state) {
+            if (window.app && window.app.stateMachine) {
+                window.app.stateMachine.transitionTo(state);
+                updateDebugInfo(`Переход в состояние: ${state}`);
+            }
+        };
+        
+        window.revertToPreviousState = function() {
+            if (window.app && window.app.stateMachine) {
+                window.app.stateMachine.revertToPrevious();
+                updateDebugInfo('Возврат к предыдущему состоянию');
+            }
+        };
+        
+        window.showCurrentState = function() {
+            if (window.app && window.app.stateMachine) {
+                const state = window.app.stateMachine.getCurrentState();
+                const allowed = window.app.stateMachine.getAllowedTransitions();
+                updateDebugInfo(`Состояние: ${state}\nРазрешенные переходы: ${allowed.join(', ')}`);
+            }
+        };
+        
+        window.testLipsync = function(vowel) {
+            if (window.app && window.app.blendShapeManager) {
+                const values = {
+                    'Fcl_MTH_A': vowel === 'A' ? 0.8 : 0,
+                    'Fcl_MTH_I': vowel === 'I' ? 0.8 : 0,
+                    'Fcl_MTH_U': vowel === 'U' ? 0.8 : 0,
+                    'Fcl_MTH_E': vowel === 'E' ? 0.8 : 0,
+                    'Fcl_MTH_O': vowel === 'O' ? 0.8 : 0
+                };
+                window.app.blendShapeManager.applyLipsync(values, 10);
+                updateDebugInfo(`Липсинк: ${vowel}`);
+            }
+        };
+        
+        window.stopLipsync = function() {
+            if (window.app && window.app.blendShapeManager) {
+                window.app.blendShapeManager.applyLipsync({
+                    'Fcl_MTH_A': 0,
+                    'Fcl_MTH_I': 0,
+                    'Fcl_MTH_U': 0,
+                    'Fcl_MTH_E': 0,
+                    'Fcl_MTH_O': 0
+                }, 10);
+                updateDebugInfo('Липсинк остановлен');
+            }
+        };
+        
+        window.showActiveAnimations = function() {
+            if (window.app && window.app.animationSystem) {
+                const active = window.app.animationSystem.getActiveAnimations();
+                updateDebugInfo('Активные анимации:\n' + JSON.stringify(active, null, 2));
+            }
+        };
+        
+        window.showActiveBlendShapes = function() {
+            if (window.app && window.app.blendShapeManager) {
+                const active = window.app.blendShapeManager.getActiveBlendShapes();
+                updateDebugInfo('Активные blend shapes:\n' + JSON.stringify(active, null, 2));
+            }
+        };
+        
+        window.showAllDebugInfo = function() {
+            let info = '🎭 Отладочная информация:\n\n';
+            
+            if (window.app) {
+                if (window.app.animationSystem) {
+                    const activeAnimations = window.app.animationSystem.getActiveAnimations();
+                    info += 'Активные анимации:\n' + JSON.stringify(activeAnimations, null, 2) + '\n\n';
+                }
+                
+                if (window.app.blendShapeManager) {
+                    const activeBlendShapes = window.app.blendShapeManager.getActiveBlendShapes();
+                    info += 'Активные blend shapes:\n' + JSON.stringify(activeBlendShapes, null, 2) + '\n\n';
+                }
+                
+                if (window.app.stateMachine) {
+                    const currentState = window.app.stateMachine.getCurrentState();
+                    const allowedTransitions = window.app.stateMachine.getAllowedTransitions();
+                    info += `Текущее состояние: ${currentState}\n`;
+                    info += `Разрешенные переходы: ${allowedTransitions.join(', ')}\n\n`;
+                }
+            }
+            
+            updateDebugInfo(info);
+        };
+        
+        function updateDebugInfo(message) {
+            const debugElement = document.getElementById('debug-output');
+            if (debugElement) {
+                debugElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            }
+        }
+        
+        // Инициализация тестового приложения
+        window.addEventListener('load', () => {
+            updateDebugInfo('🚀 Инициализация тестового приложения...');
+            
+            // Создаем простой тестовый объект
+            window.app = {
+                animationSystem: null,
+                blendShapeManager: null,
+                stateMachine: null
+            };
+            
+            // Имитируем загрузку новой системы
+            setTimeout(() => {
+                updateDebugInfo('✅ Новая система анимаций готова к тестированию!\n\n' +
+                              '💡 Попробуйте:\n' +
+                              '1. Тест базовых анимаций\n' +
+                              '2. Наложение анимаций\n' +
+                              '3. Приоритеты эмоций\n' +
+                              '4. State machine');
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

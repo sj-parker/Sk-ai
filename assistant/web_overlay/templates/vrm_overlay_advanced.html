@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRM Advanced Overlay</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        body {
+            background-color: transparent;
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #vrm-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+            max-width: 200px;
+        }
+
+        #controls button {
+            margin: 2px;
+            padding: 5px 10px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        #controls button:hover {
+            background: #555;
+        }
+
+        #controls button.active {
+            background: #007acc;
+        }
+
+        #status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        #audio-visualizer {
+            position: absolute;
+            bottom: 60px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #007acc;
+            transition: width 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Загрузка VRM модели...</div>
+    
+    <div id="controls">
+        <div style="margin-bottom: 10px; font-weight: bold;">Анимации:</div>
+        <button onclick="toggleAnimation('idle')" id="btn-idle" class="active">Idle</button>
+        <button onclick="toggleAnimation('talking')" id="btn-talking">Talking</button>
+        <button onclick="toggleAnimation('waiting')" id="btn-waiting">Waiting</button>
+        
+        <div style="margin-top: 10px; margin-bottom: 5px; font-weight: bold;">Эмоции:</div>
+        <button onclick="toggleEmotion('happy')" id="btn-happy">Happy</button>
+        <button onclick="toggleEmotion('sad')" id="btn-sad">Sad</button>
+        <button onclick="toggleEmotion('angry')" id="btn-angry">Angry</button>
+        <button onclick="toggleEmotion('surprised')" id="btn-surprised">Surprised</button>
+        
+        <div style="margin-top: 10px; margin-bottom: 5px; font-weight: bold;">Камера:</div>
+        <button onclick="resetCamera()">Reset</button>
+        <button onclick="toggleAutoRotate()" id="btn-rotate">Auto Rotate</button>
+    </div>
+
+    <div id="status">Статус: Загрузка...</div>
+    
+    <div id="audio-visualizer">
+        <div>Аудио уровень: <span id="audio-level">0</span></div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="audio-progress"></div>
+        </div>
+    </div>
+
+    <div id="vrm-container"></div>
+
+    <!-- Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+    <!-- GLTFLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        // SHIM для глобального OrbitControls (three.js r150+)
+        if (typeof OrbitControls === 'undefined') {
+            for (const key in window) {
+                if (
+                    window[key] &&
+                    typeof window[key] === 'function' &&
+                    window[key].name === 'OrbitControls'
+                ) {
+                    window.OrbitControls = window[key];
+                    break;
+                }
+            }
+        }
+    </script>
+    <!-- VRM Loader -->
+    <script src="https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.0.0/lib/three-vrm.min.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let vrmModel = null;
+        let currentAnimation = 'idle';
+        let currentEmotion = null;
+        let emotionTimeout = null;
+        let autoRotate = false;
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let dataArray = null;
+        
+        // Настройки
+        const config = {
+            vrmPath: '{{ vrm_model_path }}',
+            wsHost: '{{ ws_host }}',
+            wsPort: '{{ ws_port }}',
+            emotionDuration: {{ emotion_duration_ms or 2000 }},
+            cameraDistance: 2,
+            modelScale: 1.0,
+            modelPosition: { x: 0, y: -1, z: 0 },
+            enableLipSync: true,
+            enableAudioVisualizer: true
+        };
+
+        // Состояния анимаций
+        const animations = {
+            idle: { weight: 1.0, loop: true },
+            talking: { weight: 1.0, loop: true },
+            waiting: { weight: 1.0, loop: true }
+        };
+
+        // Эмоции
+        const emotions = {
+            happy: { morphTarget: 'happy', weight: 1.0 },
+            sad: { morphTarget: 'sad', weight: 1.0 },
+            angry: { morphTarget: 'angry', weight: 1.0 },
+            surprised: { morphTarget: 'surprised', weight: 1.0 }
+        };
+
+        function init() {
+            // Создаем сцену
+            scene = new THREE.Scene();
+            scene.background = null; // Прозрачный фон
+
+            // Создаем камеру
+            camera = new THREE.PerspectiveCamera(
+                75, 
+                window.innerWidth / window.innerHeight, 
+                0.1, 
+                1000
+            );
+            camera.position.set(0, 0, config.cameraDistance);
+
+            // Создаем рендерер
+            renderer = new THREE.WebGLRenderer({ 
+                alpha: true, 
+                antialias: true 
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+
+            // Добавляем рендерер в контейнер
+            document.getElementById('vrm-container').appendChild(renderer.domElement);
+
+            // Добавляем освещение
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            // Добавляем контролы камеры
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.enableZoom = true;
+            controls.enablePan = false;
+            controls.maxPolarAngle = Math.PI / 2;
+            controls.minPolarAngle = 0;
+
+            // Загружаем VRM модель
+            loadVRMModel();
+
+            // Инициализируем аудио
+            if (config.enableAudioVisualizer) {
+                initAudio();
+            }
+
+            // Запускаем анимационный цикл
+            animate();
+
+            // Обработчик изменения размера окна
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        async function loadVRMModel() {
+            try {
+                updateStatus('Загрузка VRM модели...');
+                
+                const loader = new THREE.GLTFLoader();
+                const gltf = await new Promise((resolve, reject) => {
+                    loader.load(config.vrmPath, resolve, undefined, reject);
+                });
+
+                const vrm = await THREE.VRM.from(gltf);
+                vrmModel = vrm;
+                
+                // Настраиваем модель
+                vrmModel.scene.scale.setScalar(config.modelScale);
+                vrmModel.scene.position.set(
+                    config.modelPosition.x,
+                    config.modelPosition.y,
+                    config.modelPosition.z
+                );
+                
+                scene.add(vrmModel.scene);
+
+                // Настраиваем анимации
+                if (vrmModel.animationManager) {
+                    createAdvancedAnimations();
+                }
+
+                // Скрываем загрузку
+                document.getElementById('loading').classList.add('hidden');
+                updateStatus('Модель загружена. Статус: Idle');
+
+                // Подключаемся к WebSocket
+                connectWebSocket();
+
+            } catch (error) {
+                console.error('Ошибка загрузки VRM модели:', error);
+                updateStatus('Ошибка загрузки модели: ' + error.message);
+                document.getElementById('loading').textContent = 'Ошибка загрузки модели';
+            }
+        }
+
+        function createAdvancedAnimations() {
+            if (!vrmModel.animationManager) return;
+
+            const mixer = vrmModel.animationManager.mixer;
+            
+            // Создаем более сложные анимации
+            vrmModel.animations = {};
+
+            // Idle анимация - легкое покачивание головы и тела
+            const idleTracks = [];
+            
+            // Анимация головы (легкое покачивание)
+            if (vrmModel.humanoid) {
+                const headBone = vrmModel.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Head);
+                if (headBone) {
+                    const headTrack = new THREE.VectorKeyframeTrack(
+                        '.rotation[x]',
+                        [0, 1, 2],
+                        [0, 0.05, 0]
+                    );
+                    idleTracks.push(headTrack);
+                }
+            }
+
+            const idleClip = new THREE.AnimationClip('idle', 2, idleTracks);
+            const idleAction = mixer.clipAction(idleClip);
+            idleAction.setLoop(THREE.LoopRepeat);
+            idleAction.play();
+            vrmModel.animations.idle = idleAction;
+
+            // Talking анимация - движение рта и головы
+            const talkingTracks = [];
+            
+            // Анимация рта (липсинк)
+            if (vrmModel.morphTargetDictionary && vrmModel.morphTargetDictionary.A) {
+                const mouthTrack = new THREE.NumberKeyframeTrack(
+                    '.morphTargetInfluences[' + vrmModel.morphTargetDictionary.A + ']',
+                    [0, 0.5, 1],
+                    [0, 1, 0]
+                );
+                talkingTracks.push(mouthTrack);
+            }
+
+            const talkingClip = new THREE.AnimationClip('talking', 0.5, talkingTracks);
+            const talkingAction = mixer.clipAction(talkingClip);
+            talkingAction.setLoop(THREE.LoopRepeat);
+            vrmModel.animations.talking = talkingAction;
+
+            // Waiting анимация - нетерпеливые движения
+            const waitingTracks = [];
+            
+            // Анимация рук
+            if (vrmModel.humanoid) {
+                const leftArm = vrmModel.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.LeftUpperArm);
+                if (leftArm) {
+                    const armTrack = new THREE.VectorKeyframeTrack(
+                        '.rotation[z]',
+                        [0, 0.5, 1, 1.5],
+                        [0, 0.1, 0, -0.1]
+                    );
+                    waitingTracks.push(armTrack);
+                }
+            }
+
+            const waitingClip = new THREE.AnimationClip('waiting', 1.5, waitingTracks);
+            const waitingAction = mixer.clipAction(waitingClip);
+            waitingAction.setLoop(THREE.LoopRepeat);
+            vrmModel.animations.waiting = waitingAction;
+        }
+
+        function toggleAnimation(animationName) {
+            if (!vrmModel || !vrmModel.animations) return;
+
+            // Останавливаем текущую анимацию
+            if (vrmModel.animations[currentAnimation]) {
+                vrmModel.animations[currentAnimation].stop();
+            }
+
+            // Запускаем новую анимацию
+            if (vrmModel.animations[animationName]) {
+                vrmModel.animations[animationName].play();
+                currentAnimation = animationName;
+                updateStatus(`Статус: ${animationName}`);
+                
+                // Обновляем активную кнопку
+                document.querySelectorAll('#controls button[id^="btn-"]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(`btn-${animationName}`).classList.add('active');
+            }
+        }
+
+        function toggleEmotion(emotionName) {
+            if (!vrmModel || !vrmModel.morphTargetDictionary) return;
+
+            // Сбрасываем предыдущую эмоцию
+            if (currentEmotion && vrmModel.morphTargetDictionary[currentEmotion]) {
+                vrmModel.morphTargetInfluences[vrmModel.morphTargetDictionary[currentEmotion]] = 0;
+            }
+
+            // Устанавливаем новую эмоцию
+            if (vrmModel.morphTargetDictionary[emotionName]) {
+                const index = vrmModel.morphTargetDictionary[emotionName];
+                vrmModel.morphTargetInfluences[index] = emotions[emotionName].weight;
+                currentEmotion = emotionName;
+                
+                // Автоматически возвращаемся к idle через время
+                if (emotionTimeout) clearTimeout(emotionTimeout);
+                emotionTimeout = setTimeout(() => {
+                    if (currentEmotion === emotionName) {
+                        vrmModel.morphTargetInfluences[index] = 0;
+                        currentEmotion = null;
+                    }
+                }, config.emotionDuration);
+            }
+        }
+
+        function toggleAutoRotate() {
+            autoRotate = !autoRotate;
+            controls.autoRotate = autoRotate;
+            document.getElementById('btn-rotate').classList.toggle('active', autoRotate);
+        }
+
+        function resetCamera() {
+            camera.position.set(0, 0, config.cameraDistance);
+            controls.reset();
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        async function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                // Запрашиваем доступ к микрофону
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                
+                updateStatus('Аудио инициализировано');
+            } catch (error) {
+                console.error('Ошибка инициализации аудио:', error);
+                updateStatus('Аудио недоступно');
+            }
+        }
+
+        function updateAudioVisualizer() {
+            if (!analyser || !dataArray) return;
+
+            analyser.getByteFrequencyData(dataArray);
+            
+            // Вычисляем средний уровень звука
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            const average = sum / dataArray.length;
+            
+            // Обновляем визуализацию
+            document.getElementById('audio-level').textContent = Math.round(average);
+            document.getElementById('audio-progress').style.width = average + '%';
+            
+            // Липсинк на основе аудио
+            if (config.enableLipSync && vrmModel && vrmModel.morphTargetDictionary && currentAnimation === 'talking') {
+                const mouthIndex = vrmModel.morphTargetDictionary.A;
+                if (mouthIndex !== undefined) {
+                    const mouthOpen = Math.min(average / 50, 1.0);
+                    vrmModel.morphTargetInfluences[mouthIndex] = mouthOpen;
+                }
+            }
+        }
+
+        function connectWebSocket() {
+            const ws = new WebSocket(`ws://${config.wsHost}:${config.wsPort}`);
+            
+            ws.onopen = () => {
+                console.log('WebSocket подключен');
+                updateStatus('WebSocket подключен. Статус: Idle');
+            };
+            
+            ws.onmessage = (event) => {
+                const msg = event.data;
+                console.log('Получено сообщение:', msg);
+                
+                if (msg === "start") {
+                    toggleAnimation('talking');
+                } else if (msg === "stop") {
+                    toggleAnimation('idle');
+                } else if (msg === "waiting") {
+                    toggleAnimation('waiting');
+                } else if (msg.startsWith("emotion:")) {
+                    const emotion = msg.split(":")[1];
+                    toggleEmotion(emotion);
+                }
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket отключен, переподключение...');
+                setTimeout(connectWebSocket, 1000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket ошибка:', error);
+            };
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (vrmModel && vrmModel.animationManager) {
+                vrmModel.animationManager.update(0.016); // ~60fps
+            }
+            
+            // Обновляем аудио визуализацию
+            if (config.enableAudioVisualizer) {
+                updateAudioVisualizer();
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Инициализация при загрузке страницы
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

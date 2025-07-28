@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Text Overlay</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        :root {
+            --text-overlay-bottom: {{ text_overlay_config.get('position', {}).get('bottom', '10vh') }};
+            --text-overlay-top: {{ text_overlay_config.get('position', {}).get('top', 'auto') }};
+            --text-overlay-left: {{ text_overlay_config.get('position', {}).get('left', '50%') }};
+            --text-overlay-transform: {{ text_overlay_config.get('position', {}).get('transform', 'translateX(-50%)') }};
+            --text-overlay-font-size: 1.6em;
+            --text-overlay-max-width: {{ text_overlay_config.get('size', {}).get('max_width', '90vw') }};
+            --text-overlay-padding: {{ text_overlay_config.get('size', {}).get('padding', '0.5em 1.5em') }};
+            --text-overlay-mobile-font-size: 0.9em;
+            --text-overlay-mobile-padding: {{ text_overlay_config.get('mobile', {}).get('padding', '0.3em 0.7em') }};
+        }
+        
+        body {
+            background: transparent;
+            margin: 0;
+            overflow: hidden;
+        }
+        #llm-text {
+            position: absolute;
+            bottom: var(--text-overlay-bottom);
+            top: var(--text-overlay-top);
+            left: 0;
+            right: 0;
+            transform: none;
+            color: white;
+            font-size: var(--text-overlay-font-size);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            text-shadow: 2px 2px 8px #000;
+            background: rgba(0,0,0,0.4);
+            border-radius: 16px;
+            padding: var(--text-overlay-padding);
+            width: 100vw;
+            max-width: 100vw;
+            word-break: break-word;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            line-height: 1.3;
+            opacity: 1;
+            transition: opacity 0.2s ease-in-out;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            #llm-text {
+                font-size: var(--text-overlay-mobile-font-size);
+                padding: var(--text-overlay-mobile-padding);
+                line-height: 1.2;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            #llm-text {
+                font-size: 1.4em;
+                line-height: 1.25;
+            }
+        }
+        
+        @media (max-width: 800px) {
+            #llm-text {
+                font-size: 1.2em;
+                line-height: 1.2;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="llm-text" data-fade-duration="{{ text_overlay_config.get('fade_duration_ms', 100) }}"></div>
+    <script>
+        const textDiv = document.getElementById("llm-text");
+        const fadeDuration = parseInt(textDiv.dataset.fadeDuration) || 100;
+        let updateTimeout = null;
+        
+        function setTextWithFade(newText) {
+            // Отменяем предыдущий таймаут, если он есть
+            if (updateTimeout) {
+                clearTimeout(updateTimeout);
+            }
+            
+            // Если текст тот же самый, не обновляем
+            if (textDiv.textContent === newText) {
+                return;
+            }
+            
+            // Плавное обновление без полного исчезновения
+            textDiv.style.opacity = 0.7;
+            updateTimeout = setTimeout(() => {
+                textDiv.textContent = newText;
+                textDiv.style.opacity = 1;
+                updateTimeout = null;
+            }, fadeDuration);
+        }
+        
+        function connectWS() {
+            const ws = new WebSocket(`ws://{{ ws_host }}:{{ ws_port }}`);
+            ws.onmessage = (event) => {
+                setTextWithFade(event.data);
+            };
+            ws.onclose = () => {
+                setTimeout(connectWS, 1000);
+            };
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+        connectWS();
+    </script>
+</body>
+</html> 

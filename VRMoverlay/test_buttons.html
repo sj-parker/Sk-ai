@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест кнопок VRM</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+        
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .test-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: transform 0.2s ease;
+        }
+        
+        .test-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .test-btn:active {
+            transform: translateY(0);
+        }
+        
+        .text-test {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .text-test input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .text-test input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .duration-test {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .duration-test input {
+            width: 100px;
+            padding: 8px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .status {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .success {
+            color: #28a745;
+        }
+        
+        .error {
+            color: #dc3545;
+        }
+        
+        .info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Тест кнопок и функций VRM</h1>
+        
+        <div class="test-section">
+            <h2>😊 Тест эмоций</h2>
+            <p>Проверьте работу всех кнопок эмоций:</p>
+            <div class="button-grid">
+                <button class="test-btn" onclick="testEmotion('manualBlink')">😉 Моргнуть</button>
+                <button class="test-btn" onclick="testEmotion('setEmotion', 'happy')">😊 Радость</button>
+                <button class="test-btn" onclick="testEmotion('setEmotion', 'sad')">😢 Грусть</button>
+                <button class="test-btn" onclick="testEmotion('setEmotion', 'angry')">😠 Злость</button>
+                <button class="test-btn" onclick="testEmotion('setEmotion', 'surprised')">😲 Удивление</button>
+                <button class="test-btn" onclick="testEmotion('setEmotion', 'neutral')">😐 Нейтрально</button>
+                <button class="test-btn" onclick="testEmotion('resetEmotions')">🔄 Сбросить эмоции</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>💬 Тест текстового оверлея</h2>
+            <p>Проверьте отображение текста:</p>
+            <div class="text-test">
+                <input type="text" id="testText" placeholder="Введите текст для отображения..." value="Привет! Это тестовое сообщение от VRM ассистента!">
+                <button class="test-btn" onclick="testTextOverlay()">Показать текст</button>
+            </div>
+            <div class="duration-test">
+                <label>Длительность (мс):</label>
+                <input type="number" id="testDuration" value="12000" min="3000" max="30000">
+                <button class="test-btn" onclick="testTextOverlay()">Показать с настройкой</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎭 Тест анимаций</h2>
+            <p>Проверьте различные анимации:</p>
+            <div class="button-grid">
+                <button class="test-btn" onclick="testAnimation('idle')">🛌 Ожидание</button>
+                <button class="test-btn" onclick="testAnimation('talking')">🗣️ Разговор</button>
+                <button class="test-btn" onclick="testAnimation('thinking')">🤔 Размышление</button>
+                <button class="test-btn" onclick="testAnimation('greeting')">👋 Приветствие</button>
+                <button class="test-btn" onclick="testAnimation('surprise')">😲 Удивление</button>
+                <button class="test-btn" onclick="testAnimation('excitement')">🎉 Восторг</button>
+            </div>
+        </div>
+        
+        <div class="status" id="statusLog">
+            <div class="info">Готов к тестированию...</div>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const statusLog = document.getElementById('statusLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            statusLog.appendChild(logEntry);
+            statusLog.scrollTop = statusLog.scrollHeight;
+        }
+        
+        function testEmotion(action, emotion = null) {
+            try {
+                if (window.app) {
+                    switch(action) {
+                        case 'manualBlink':
+                            window.app.manualBlink();
+                            log('✅ Выполнено: Моргание', 'success');
+                            break;
+                        case 'setEmotion':
+                            if (emotion) {
+                                window.app.setEmotion(emotion);
+                                log(`✅ Применена эмоция: ${emotion}`, 'success');
+                            }
+                            break;
+                        case 'resetEmotions':
+                            window.app.resetEmotions();
+                            log('✅ Сброшены все эмоции', 'success');
+                            break;
+                        default:
+                            log(`❌ Неизвестное действие: ${action}`, 'error');
+                    }
+                } else {
+                    log('❌ VRM приложение не загружено', 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        function testTextOverlay() {
+            try {
+                const text = document.getElementById('testText').value;
+                const duration = parseInt(document.getElementById('testDuration').value);
+                
+                if (!text.trim()) {
+                    log('❌ Введите текст для отображения', 'error');
+                    return;
+                }
+                
+                if (window.app && window.app.wsClient) {
+                    // Симулируем получение текстового сообщения
+                    window.app.wsClient.handleText({
+                        type: 'text',
+                        text: text,
+                        duration: duration
+                    });
+                    log(`✅ Отображен текст: "${text}" (${duration}ms)`, 'success');
+                } else {
+                    log('❌ WebSocket клиент не доступен', 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        function testAnimation(animationName) {
+            try {
+                if (window.app && window.app.playMovement) {
+                    window.app.playMovement(animationName);
+                    log(`✅ Воспроизведена анимация: ${animationName}`, 'success');
+                } else {
+                    log('❌ Функция анимации не доступна', 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        // Проверяем доступность приложения
+        function checkAppStatus() {
+            if (window.app) {
+                log('✅ VRM приложение загружено', 'success');
+                if (window.app.wsClient) {
+                    log('✅ WebSocket клиент доступен', 'success');
+                } else {
+                    log('⚠️ WebSocket клиент не инициализирован', 'info');
+                }
+            } else {
+                log('❌ VRM приложение не загружено', 'error');
+            }
+        }
+        
+        // Проверяем статус при загрузке страницы
+        window.addEventListener('load', () => {
+            setTimeout(checkAppStatus, 1000);
+        });
+    </script>
+</body>
+</html> 

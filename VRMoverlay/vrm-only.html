@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRM Overlay - OBS Only</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            background: transparent !important;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background: transparent;
+        }
+
+        /* Скрываем все элементы управления */
+        .controls, .info-panel, .status-bar, .loading {
+            display: none !important;
+        }
+
+        /* Скрываем все кнопки и панели */
+        button, select, input, label, h3, h4, .control-group {
+            display: none !important;
+        }
+
+        /* Оставляем только canvas */
+        #canvas {
+            display: block !important;
+        }
+
+        /* Скрываем статус подключения */
+        #ws-status {
+            display: none !important;
+        }
+
+        /* Скрываем все отладочные элементы */
+        .debug-info, .fps-counter, .resolution-info {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Только canvas для VRM модели -->
+    <canvas id="canvas"></canvas>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- VRM -->
+    <script src="https://unpkg.com/@pixiv/three-vrm@2.0.0/lib/three-vrm.min.js"></script>
+
+    <!-- Загружаем JavaScript код -->
+    <script src="src/vrm-websocket.js"></script>
+    <script src="src/animation-system.js"></script>
+    <script src="src/animation-integration.js"></script>
+    <script src="src/main.js"></script>
+
+    <script>
+        // Дополнительные настройки для OBS режима
+        window.IS_OBS_MODE = true;
+        
+        // Настройки WebSocket для OBS режима
+        window.WS_HOST = '192.168.1.4';
+        window.WS_PORT = 31992;
+        
+        // Отключаем все элементы управления при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎭 VRM Overlay в режиме OBS загружен');
+            
+            // Скрываем все элементы управления
+            const elementsToHide = [
+                '.controls',
+                '.info-panel', 
+                '.status-bar',
+                '.loading',
+                'button',
+                'select',
+                'input',
+                'label',
+                'h3',
+                'h4',
+                '.control-group',
+                '#ws-status',
+                '.debug-info',
+                '.fps-counter',
+                '.resolution-info'
+            ];
+            
+            elementsToHide.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    el.style.display = 'none';
+                });
+            });
+            
+            // Убеждаемся, что canvas занимает весь экран
+            const canvas = document.getElementById('canvas');
+            if (canvas) {
+                canvas.style.width = '100vw';
+                canvas.style.height = '100vh';
+                canvas.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html> 

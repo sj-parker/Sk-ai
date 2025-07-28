@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRM Overlay</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        body {
+            background-color: transparent;
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #vrm-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+        }
+
+        #controls button {
+            margin: 2px;
+            padding: 5px 10px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #controls button:hover {
+            background: #555;
+        }
+
+        #status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Загрузка VRM модели...</div>
+    
+    <div id="controls">
+        <button onclick="toggleAnimation('idle')">Idle</button>
+        <button onclick="toggleAnimation('talking')">Talking</button>
+        <button onclick="toggleAnimation('waiting')">Waiting</button>
+        <button onclick="toggleEmotion('happy')">Happy</button>
+        <button onclick="toggleEmotion('sad')">Sad</button>
+        <button onclick="toggleEmotion('angry')">Angry</button>
+        <button onclick="toggleEmotion('surprised')">Surprised</button>
+        <button onclick="resetCamera()">Reset Camera</button>
+    </div>
+
+    <div id="status">Статус: Загрузка...</div>
+
+    <div id="vrm-container"></div>
+
+    <button id="test-text-overlay-btn" style="position:fixed;top:10px;right:10px;z-index:1000;">Тест текстового оверлея</button>
+
+    <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
+    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/controls/OrbitControls.js';
+    import * as THREE_VRM from 'https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.0.0/lib/three-vrm.module.js';
+
+    let scene, camera, renderer, controls;
+    let vrmModel = null;
+    let currentAnimation = 'idle';
+    let currentEmotion = null;
+    let emotionTimeout = null;
+    
+    // Настройки
+    const config = {
+        vrmPath: '{{ vrm_model_path }}',
+        wsHost: '{{ ws_host }}',
+        wsPort: '{{ ws_port }}',
+        emotionDuration: {{ emotion_duration_ms or 2000 }},
+        cameraDistance: 2,
+        modelScale: 1.0,
+        modelPosition: { x: 0, y: -1, z: 0 }
+    };
+
+    // Состояния анимаций
+    const animations = {
+        idle: { weight: 1.0, loop: true },
+        talking: { weight: 1.0, loop: true },
+        waiting: { weight: 1.0, loop: true }
+    };
+
+    // Эмоции
+    const emotions = {
+        happy: { morphTarget: 'happy', weight: 1.0 },
+        sad: { morphTarget: 'sad', weight: 1.0 },
+        angry: { morphTarget: 'angry', weight: 1.0 },
+        surprised: { morphTarget: 'surprised', weight: 1.0 }
+    };
+
+    function init() {
+        // Создаем сцену
+        scene = new THREE.Scene();
+        scene.background = null; // Прозрачный фон
+
+        // Создаем камеру
+        camera = new THREE.PerspectiveCamera(
+            75, 
+            window.innerWidth / window.innerHeight, 
+            0.1, 
+            1000
+        );
+        camera.position.set(0, 0, config.cameraDistance);
+
+        // Создаем рендерер
+        renderer = new THREE.WebGLRenderer({ 
+            alpha: true, 
+            antialias: true 
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+
+        // Добавляем рендерер в контейнер
+        document.getElementById('vrm-container').appendChild(renderer.domElement);
+
+        // Добавляем освещение
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+
+        // Добавляем контролы камеры
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enableZoom = true;
+        controls.enablePan = false;
+        controls.maxPolarAngle = Math.PI / 2;
+        controls.minPolarAngle = 0;
+
+        // Загружаем VRM модель
+        loadVRMModel();
+
+        // Запускаем анимационный цикл
+        animate();
+
+        // Обработчик изменения размера окна
+        window.addEventListener('resize', onWindowResize);
+    }
+
+    async function loadVRMModel() {
+        try {
+            updateStatus('Загрузка VRM модели...');
+            const loader = new GLTFLoader();
+            const gltf = await new Promise((resolve, reject) => {
+                loader.load(config.vrmPath, resolve, undefined, reject);
+            });
+
+            const vrm = await THREE.VRM.from(gltf);
+            vrmModel = vrm;
+            
+            // Настраиваем модель
+            vrmModel.scene.scale.setScalar(config.modelScale);
+            vrmModel.scene.position.set(
+                config.modelPosition.x,
+                config.modelPosition.y,
+                config.modelPosition.z
+            );
+            
+            scene.add(vrmModel.scene);
+
+            // Настраиваем анимации
+            if (vrmModel.animationManager) {
+                // Создаем базовые анимации если их нет
+                createDefaultAnimations();
+            }
+
+            // Скрываем загрузку
+            document.getElementById('loading').classList.add('hidden');
+            updateStatus('Модель загружена. Статус: Idle');
+
+            // Подключаемся к WebSocket
+            connectWebSocket();
+
+        } catch (error) {
+            console.error('Ошибка загрузки VRM модели:', error);
+            updateStatus('Ошибка загрузки модели: ' + error.message);
+            document.getElementById('loading').textContent = 'Ошибка загрузки модели';
+        }
+    }
+
+    function createDefaultAnimations() {
+        if (!vrmModel.animationManager) return;
+
+        // Создаем простые анимации для разных состояний
+        const mixer = vrmModel.animationManager.mixer;
+        
+        // Idle анимация (легкое покачивание)
+        const idleClip = new THREE.AnimationClip('idle', 2, []);
+        const idleAction = mixer.clipAction(idleClip);
+        idleAction.setLoop(THREE.LoopRepeat);
+        idleAction.play();
+
+        // Talking анимация (движение рта)
+        const talkingClip = new THREE.AnimationClip('talking', 1, []);
+        const talkingAction = mixer.clipAction(talkingClip);
+        talkingAction.setLoop(THREE.LoopRepeat);
+
+        // Waiting анимация (нетерпеливое движение)
+        const waitingClip = new THREE.AnimationClip('waiting', 1.5, []);
+        const waitingAction = mixer.clipAction(waitingClip);
+        waitingAction.setLoop(THREE.LoopRepeat);
+
+        // Сохраняем действия
+        vrmModel.animations = {
+            idle: idleAction,
+            talking: talkingAction,
+            waiting: waitingAction
+        };
+    }
+
+    function toggleAnimation(animationName) {
+        if (!vrmModel || !vrmModel.animations) return;
+
+        // Останавливаем текущую анимацию
+        if (vrmModel.animations[currentAnimation]) {
+            vrmModel.animations[currentAnimation].stop();
+        }
+
+        // Запускаем новую анимацию
+        if (vrmModel.animations[animationName]) {
+            vrmModel.animations[animationName].play();
+            currentAnimation = animationName;
+            updateStatus(`Статус: ${animationName}`);
+        }
+    }
+
+    function toggleEmotion(emotionName) {
+        if (!vrmModel || !vrmModel.morphTargetDictionary) return;
+
+        // Сбрасываем предыдущую эмоцию
+        if (currentEmotion && vrmModel.morphTargetDictionary[currentEmotion]) {
+            vrmModel.morphTargetInfluences[vrmModel.morphTargetDictionary[currentEmotion]] = 0;
+        }
+
+        // Устанавливаем новую эмоцию
+        if (vrmModel.morphTargetDictionary[emotionName]) {
+            const index = vrmModel.morphTargetDictionary[emotionName];
+            vrmModel.morphTargetInfluences[index] = emotions[emotionName].weight;
+            currentEmotion = emotionName;
+            
+            // Автоматически возвращаемся к idle через время
+            if (emotionTimeout) clearTimeout(emotionTimeout);
+            emotionTimeout = setTimeout(() => {
+                if (currentEmotion === emotionName) {
+                    vrmModel.morphTargetInfluences[index] = 0;
+                    currentEmotion = null;
+                }
+            }, config.emotionDuration);
+        }
+    }
+
+    function resetCamera() {
+        camera.position.set(0, 0, config.cameraDistance);
+        controls.reset();
+    }
+
+    function updateStatus(message) {
+        document.getElementById('status').textContent = message;
+    }
+
+    function connectWebSocket() {
+        const ws = new WebSocket(`ws://${config.wsHost}:${config.wsPort}`);
+        
+        ws.onopen = () => {
+            console.log('WebSocket подключен');
+            updateStatus('WebSocket подключен. Статус: Idle');
+        };
+        
+        ws.onmessage = (event) => {
+            const msg = event.data;
+            console.log('Получено сообщение:', msg);
+            
+            if (msg === "start") {
+                toggleAnimation('talking');
+            } else if (msg === "stop") {
+                toggleAnimation('idle');
+            } else if (msg === "waiting") {
+                toggleAnimation('waiting');
+            } else if (msg.startsWith("emotion:")) {
+                const emotion = msg.split(":")[1];
+                toggleEmotion(emotion);
+            }
+        };
+        
+        ws.onclose = () => {
+            console.log('WebSocket отключен, переподключение...');
+            setTimeout(connectWebSocket, 1000);
+        };
+        
+        ws.onerror = (error) => {
+            console.error('WebSocket ошибка:', error);
+        };
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        if (vrmModel && vrmModel.animationManager) {
+            vrmModel.animationManager.update(0.016); // ~60fps
+        }
+        
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // === Тест текстового оверлея ===
+    let textOverlayWS = null;
+    function connectTextOverlayWS() {
+        textOverlayWS = new WebSocket('ws://192.168.1.4:31993');
+        textOverlayWS.onopen = () => {
+            console.log('Text Overlay WebSocket открыт');
+        };
+        textOverlayWS.onclose = () => {
+            console.log('Text Overlay WebSocket закрыт, переподключение...');
+            setTimeout(connectTextOverlayWS, 1000);
+        };
+        textOverlayWS.onerror = (e) => {
+            console.error('Text Overlay WebSocket error:', e);
+        };
+    }
+    connectTextOverlayWS();
+
+    document.getElementById('test-text-overlay-btn').onclick = function() {
+        if (textOverlayWS && textOverlayWS.readyState === 1) {
+            textOverlayWS.send('Тестовое сообщение из VRM-оверлея!');
+            alert('Тестовое сообщение отправлено в текстовый оверлей!');
+        } else {
+            alert('WebSocket текстового оверлея не подключён!');
+        }
+    };
+    // === Конец теста текстового оверлея ===
+
+    // Запуск
+    init();
+    </script>
+</body>
+</html>

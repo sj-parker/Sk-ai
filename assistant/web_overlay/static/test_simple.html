@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Images</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+</head>
+<body>
+    <h1>Test Images</h1>
+    <img id="test1" src="/static/idle.png" alt="idle" style="width: 200px; height: 200px;">
+    <img id="test2" src="/static/talking.png" alt="talking" style="width: 200px; height: 200px;">
+    <img id="test3" src="/static/waiting.png" alt="waiting" style="width: 200px; height: 200px;">
+    
+    <script>
+        document.getElementById('test1').onload = () => console.log('idle.png loaded');
+        document.getElementById('test1').onerror = () => console.log('idle.png error');
+        document.getElementById('test2').onload = () => console.log('talking.png loaded');
+        document.getElementById('test2').onerror = () => console.log('talking.png error');
+        document.getElementById('test3').onload = () => console.log('waiting.png loaded');
+        document.getElementById('test3').onerror = () => console.log('waiting.png error');
+    </script>
+</body>
+</html> 

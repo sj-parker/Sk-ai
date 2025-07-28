@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест новой системы анимаций VRM</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+        
+        .vrm-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+        }
+        
+        #canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .controls-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .section h3 {
+            margin: 0 0 15px 0;
+            color: #ffd700;
+            font-size: 18px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(45deg, #ff9800, #f57c00);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        
+        .status {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .info {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #4CAF50;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #ffc107;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="vrm-container">
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <div class="controls-panel">
+            <div class="section">
+                <h3>🎭 Новая система анимаций</h3>
+                <div class="info">
+                    <strong>Новые возможности:</strong><br>
+                    • Наложение анимаций<br>
+                    • Система приоритетов<br>
+                    • Плавные переходы<br>
+                    • State machine
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🎬 Базовые анимации</h3>
+                <div class="grid-2">
+                    <button class="btn" onclick="playAnimation('idle')">Idle</button>
+                    <button class="btn" onclick="playAnimation('talking')">Talking</button>
+                    <button class="btn" onclick="playAnimation('thinking_move')">Thinking</button>
+                    <button class="btn" onclick="playAnimation('greeting')">Greeting</button>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>😊 Эмоции</h3>
+                <div class="grid-3">
+                    <button class="btn btn-primary" onclick="applyEmotion('happy')">Happy</button>
+                    <button class="btn btn-warning" onclick="applyEmotion('sad')">Sad</button>
+                    <button class="btn btn-danger" onclick="applyEmotion('angry')">Angry</button>
+                    <button class="btn" onclick="applyEmotion('surprised')">Surprised</button>
+                    <button class="btn" onclick="applyEmotion('neutral')">Neutral</button>
+                    <button class="btn" onclick="resetEmotions()">Reset</button>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🔄 Наложение анимаций</h3>
+                <div class="warning">
+                    <strong>Демонстрация наложения:</strong><br>
+                    Базовая анимация + жест одновременно
+                </div>
+                <div class="grid-2">
+                    <button class="btn" onclick="overlapAnimations()">Idle + Greeting</button>
+                    <button class="btn" onclick="overlapAnimations2()">Talking + Surprise</button>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🎯 State Machine</h3>
+                <div class="grid-2">
+                    <button class="btn" onclick="transitionTo('idle')">→ Idle</button>
+                    <button class="btn" onclick="transitionTo('talking')">→ Talking</button>
+                    <button class="btn" onclick="transitionTo('thinking')">→ Thinking</button>
+                    <button class="btn" onclick="transitionTo('listening')">→ Listening</button>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>👄 Липсинк</h3>
+                <div class="grid-3">
+                    <button class="btn" onclick="testLipsync('A')">A</button>
+                    <button class="btn" onclick="testLipsync('I')">I</button>
+                    <button class="btn" onclick="testLipsync('U')">U</button>
+                    <button class="btn" onclick="testLipsync('E')">E</button>
+                    <button class="btn" onclick="testLipsync('O')">O</button>
+                    <button class="btn" onclick="stopLipsync()">Stop</button>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🔍 Отладка</h3>
+                <div class="grid-2">
+                    <button class="btn" onclick="showActiveAnimations()">Active Animations</button>
+                    <button class="btn" onclick="showActiveBlendShapes()">Active Blend Shapes</button>
+                    <button class="btn" onclick="showCurrentState()">Current State</button>
+                    <button class="btn" onclick="clearAll()">Clear All</button>
+                </div>
+                <div id="debug-info" class="status">
+                    Готов к тестированию...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TWEEN.js для плавных переходов -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    
+    <!-- Three.js -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+        import { AnimationIntegration } from './src/animation-integration.js';
+        
+        // Глобальные переменные
+        window.app = null;
+        window.AnimationExamples = null;
+        
+        // Функции для кнопок
+        window.playAnimation = function(name) {
+            if (window.app && window.app.animationSystem) {
+                window.app.animationSystem.playAnimation(name);
+                updateDebugInfo(`Воспроизводится: ${name}`);
+            }
+        };
+        
+        window.applyEmotion = function(emotion) {
+            if (window.app && window.app.blendShapeManager) {
+                window.app.blendShapeManager.applyEmotion(emotion, 0.8, 5);
+                updateDebugInfo(`Эмоция: ${emotion}`);
+            }
+        };
+        
+        window.resetEmotions = function() {
+            if (window.app && window.app.blendShapeManager) {
+                window.app.blendShapeManager.resetEmotions();
+                updateDebugInfo('Эмоции сброшены');
+            }
+        };
+        
+        window.overlapAnimations = function() {
+            if (window.app && window.app.animationSystem) {
+                window.app.animationSystem.playAnimation('idle', 0);
+                window.app.animationSystem.playAnimation('greeting', 2);
+                updateDebugInfo('Наложение: Idle + Greeting');
+            }
+        };
+        
+        window.overlapAnimations2 = function() {
+            if (window.app && window.app.animationSystem) {
+                window.app.animationSystem.playAnimation('talking', 1);
+                window.app.animationSystem.playAnimation('surprise_move', 2);
+                updateDebugInfo('Наложение: Talking + Surprise');
+            }
+        };
+        
+        window.transitionTo = function(state) {
+            if (window.app && window.app.stateMachine) {
+                window.app.stateMachine.transitionTo(state);
+                updateDebugInfo(`Переход в состояние: ${state}`);
+            }
+        };
+        
+        window.testLipsync = function(vowel) {
+            if (window.app && window.app.blendShapeManager) {
+                const values = {
+                    'Fcl_MTH_A': vowel === 'A' ? 0.8 : 0,
+                    'Fcl_MTH_I': vowel === 'I' ? 0.8 : 0,
+                    'Fcl_MTH_U': vowel === 'U' ? 0.8 : 0,
+                    'Fcl_MTH_E': vowel === 'E' ? 0.8 : 0,
+                    'Fcl_MTH_O': vowel === 'O' ? 0.8 : 0
+                };
+                window.app.blendShapeManager.applyLipsync(values, 10);
+                updateDebugInfo(`Липсинк: ${vowel}`);
+            }
+        };
+        
+        window.stopLipsync = function() {
+            if (window.app && window.app.blendShapeManager) {
+                window.app.blendShapeManager.applyLipsync({
+                    'Fcl_MTH_A': 0,
+                    'Fcl_MTH_I': 0,
+                    'Fcl_MTH_U': 0,
+                    'Fcl_MTH_E': 0,
+                    'Fcl_MTH_O': 0
+                }, 10);
+                updateDebugInfo('Липсинк остановлен');
+            }
+        };
+        
+        window.showActiveAnimations = function() {
+            if (window.app && window.app.animationSystem) {
+                const active = window.app.animationSystem.getActiveAnimations();
+                updateDebugInfo('Активные анимации: ' + JSON.stringify(active, null, 2));
+            }
+        };
+        
+        window.showActiveBlendShapes = function() {
+            if (window.app && window.app.blendShapeManager) {
+                const active = window.app.blendShapeManager.getActiveBlendShapes();
+                updateDebugInfo('Активные blend shapes: ' + JSON.stringify(active, null, 2));
+            }
+        };
+        
+        window.showCurrentState = function() {
+            if (window.app && window.app.stateMachine) {
+                const state = window.app.stateMachine.getCurrentState();
+                const allowed = window.app.stateMachine.getAllowedTransitions();
+                updateDebugInfo(`Состояние: ${state}, Разрешенные переходы: ${allowed.join(', ')}`);
+            }
+        };
+        
+        window.clearAll = function() {
+            if (window.app) {
+                if (window.app.animationSystem) window.app.animationSystem.stopAllAnimations();
+                if (window.app.blendShapeManager) window.app.blendShapeManager.clearAll();
+                updateDebugInfo('Все анимации и blend shapes очищены');
+            }
+        };
+        
+        function updateDebugInfo(message) {
+            const debugElement = document.getElementById('debug-info');
+            if (debugElement) {
+                debugElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            }
+        }
+        
+        // Основной класс приложения (упрощенная версия)
+        class TestVRMApp {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+                this.clock = new THREE.Clock();
+                this.vrm = null;
+                
+                this.setupScene();
+                this.setupCamera();
+                this.setupRenderer();
+                this.setupLights();
+                
+                // Инициализируем новую систему анимаций
+                this.animationIntegration = new AnimationIntegration(this);
+                
+                // Создаем тестовые анимации
+                this.createTestAnimations();
+                
+                this.animate();
+                
+                console.log('🎭 Тестовое приложение инициализировано');
+                updateDebugInfo('Приложение готово к тестированию');
+            }
+            
+            setupScene() {
+                this.scene.background = new THREE.Color(0x87CEEB);
+            }
+            
+            setupCamera() {
+                this.camera.position.set(0, 1.5, 3);
+                this.camera.lookAt(0, 1, 0);
+            }
+            
+            setupRenderer() {
+                this.renderer.setSize(window.innerWidth * 0.6, window.innerHeight * 0.8);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+            }
+            
+            setupLights() {
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                directionalLight.position.set(5, 5, 5);
+                this.scene.add(directionalLight);
+            }
+            
+            createTestAnimations() {
+                // Создаем простые тестовые анимации
+                this.movementAnimations = {};
+                
+                // Idle анимация
+                const idleClip = new THREE.AnimationClip('idle', 4, []);
+                this.movementAnimations['idle'] = idleClip;
+                
+                // Talking анимация
+                const talkingClip = new THREE.AnimationClip('talking', 3, []);
+                this.movementAnimations['talking'] = talkingClip;
+                
+                // Thinking анимация
+                const thinkingClip = new THREE.AnimationClip('thinking_move', 4, []);
+                this.movementAnimations['thinking_move'] = thinkingClip;
+                
+                // Greeting анимация
+                const greetingClip = new THREE.AnimationClip('greeting', 2, []);
+                this.movementAnimations['greeting'] = greetingClip;
+                
+                // Surprise анимация
+                const surpriseClip = new THREE.AnimationClip('surprise_move', 1.5, []);
+                this.movementAnimations['surprise_move'] = surpriseClip;
+                
+                // Мигрируем анимации в новую систему
+                this.animationIntegration.migrateExistingAnimations();
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                const delta = this.clock.getDelta();
+                
+                // Обновляем новую систему анимаций
+                if (this.animationIntegration) {
+                    this.animationIntegration.update(delta);
+                }
+                
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+        
+        // Инициализация приложения
+        window.addEventListener('load', () => {
+            window.app = new TestVRMApp();
+            window.AnimationExamples = window.AnimationExamples || {};
+        });
+    </script>
+</body>
+</html> 

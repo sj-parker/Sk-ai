@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlay</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        body {
+            background-color: transparent;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 100vw;
+            object-fit: contain;
+            max-width: 100vw;
+            max-height: 100vh;
+        }
+
+        @media (max-width: 600px) {
+            img {
+                height: 60vh;
+                width: 100vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ВАЖНО: сюда вставляем картинку -->
+    <img id="character" src="{{ overlay_gifs.idle }}?v=1" alt="character" onerror="this.onerror=null;this.src='{{ overlay_gifs.idle }}?v=1';">
+
+    <script>
+        const character = document.getElementById("character");
+        const idleGif = "{{ overlay_gifs.idle }}?v=1";
+        const talkingGif = "{{ overlay_gifs.talking }}?v=1";
+        const waitingGif = "{{ overlay_gifs.waiting }}?v=1";
+        const emotionDuration = {{ overlay_gifs.emotion_duration_ms or 2000 }};
+        const emotionGifs = {
+            {% for k, v in overlay_gifs.emotions.items() %}
+            "{{ k }}": "{{ v }}?v=1",
+            {% endfor %}
+        };
+
+        // Отладочная информация
+        console.log('[DEBUG] idleGif:', idleGif);
+        console.log('[DEBUG] talkingGif:', talkingGif);
+        console.log('[DEBUG] waitingGif:', waitingGif);
+        console.log('[DEBUG] emotionGifs:', emotionGifs);
+        console.log('[DEBUG] Начальный src:', character.src);
+
+        let emotionTimeout = null;
+
+        function setGifSafe(src) {
+            character.onerror = function() { 
+                this.onerror=null; 
+                this.src=idleGif; 
+            };
+            character.onload = function() {
+                // Изображение загружено успешно
+            };
+            character.src = src;
+        }
+
+        function connectWS() {
+            const ws = new WebSocket(`ws://{{ ws_host }}:{{ ws_port }}`);
+            ws.onopen = () => {
+                console.log('[DEBUG] WebSocket подключен');
+            };
+            ws.onmessage = (event) => {
+                const msg = event.data;
+                if (msg === "start") {
+                    if (emotionTimeout) clearTimeout(emotionTimeout);
+                    setGifSafe(talkingGif);
+                } else if (msg === "stop") {
+                    if (emotionTimeout) clearTimeout(emotionTimeout);
+                    setGifSafe(idleGif);
+                } else if (msg === "waiting") {
+                    if (emotionTimeout) clearTimeout(emotionTimeout);
+                    setGifSafe(waitingGif);
+                } else if (msg.startsWith("emotion:")) {
+                    const emotion = msg.split(":")[1];
+                    if (emotionGifs[emotion]) {
+                        setGifSafe(emotionGifs[emotion]);
+                        if (emotionTimeout) clearTimeout(emotionTimeout);
+                        emotionTimeout = setTimeout(() => { setGifSafe(idleGif); }, emotionDuration);
+                    } else {
+                        setGifSafe(idleGif);
+                    }
+                }
+            };
+            ws.onclose = () => {
+                setTimeout(connectWS, 1000);
+            };
+            ws.onerror = (error) => {
+                console.error('[DEBUG] WebSocket ошибка:', error);
+            };
+        }
+        connectWS();
+    </script>
+</body>
+</html>

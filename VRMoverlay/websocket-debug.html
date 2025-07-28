@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.connected { background: #d4edda; color: #155724; }
+        .status.disconnected { background: #f8d7da; color: #721c24; }
+        .status.error { background: #fff3cd; color: #856404; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 WebSocket Debug</h1>
+        
+        <div class="status" id="status">Отключен</div>
+        
+        <div class="controls">
+            <label>Host: <input type="text" id="host" value="192.168.1.4"></label>
+            <label>Port: <input type="number" id="port" value="31992"></label>
+            <button id="connectBtn">Подключиться</button>
+            <button id="disconnectBtn" disabled>Отключиться</button>
+            <button id="pingBtn" disabled>Ping</button>
+            <button id="clearBtn">Очистить лог</button>
+        </div>
+        
+        <div class="log" id="log">Готов к тестированию WebSocket...</div>
+    </div>
+
+    <script>
+        class WebSocketDebugger {
+            constructor() {
+                this.ws = null;
+                this.isConnected = false;
+                this.init();
+            }
+            
+            init() {
+                this.connectBtn = document.getElementById('connectBtn');
+                this.disconnectBtn = document.getElementById('disconnectBtn');
+                this.pingBtn = document.getElementById('pingBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.status = document.getElementById('status');
+                this.log = document.getElementById('log');
+                this.hostInput = document.getElementById('host');
+                this.portInput = document.getElementById('port');
+                
+                this.connectBtn.addEventListener('click', () => this.connect());
+                this.disconnectBtn.addEventListener('click', () => this.disconnect());
+                this.pingBtn.addEventListener('click', () => this.ping());
+                this.clearBtn.addEventListener('click', () => this.clearLog());
+            }
+            
+            log(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                this.log.innerHTML += `[${timestamp}] ${message}\n`;
+                this.log.scrollTop = this.log.scrollHeight;
+                console.log(message);
+            }
+            
+            clearLog() {
+                this.log.innerHTML = '';
+            }
+            
+            updateStatus(status, className) {
+                this.status.textContent = status;
+                this.status.className = `status ${className}`;
+            }
+            
+            connect() {
+                const host = this.hostInput.value;
+                const port = this.portInput.value;
+                const url = `ws://${host}:${port}`;
+                
+                this.log(`🔌 Подключение к ${url}...`);
+                this.updateStatus('Подключение...', 'error');
+                
+                try {
+                    this.ws = new WebSocket(url);
+                    
+                    this.ws.onopen = () => {
+                        this.log('✅ WebSocket подключен!');
+                        this.updateStatus('Подключен', 'connected');
+                        this.isConnected = true;
+                        this.connectBtn.disabled = true;
+                        this.disconnectBtn.disabled = false;
+                        this.pingBtn.disabled = false;
+                        
+                        // Отправляем идентификатор VRM клиента
+                        this.sendMessage({
+                            type: 'vrm_client',
+                            client: 'debug_tool',
+                            version: '1.0'
+                        });
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        this.log(`📥 Получено: ${event.data}`);
+                    };
+                    
+                    this.ws.onclose = (event) => {
+                        this.log(`❌ Соединение закрыто. Код: ${event.code}, Причина: ${event.reason}`);
+                        this.updateStatus('Отключен', 'disconnected');
+                        this.isConnected = false;
+                        this.connectBtn.disabled = false;
+                        this.disconnectBtn.disabled = true;
+                        this.pingBtn.disabled = true;
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        this.log(`❌ WebSocket ошибка: ${error}`);
+                        this.updateStatus('Ошибка', 'error');
+                    };
+                    
+                } catch (error) {
+                    this.log(`❌ Ошибка создания WebSocket: ${error}`);
+                    this.updateStatus('Ошибка подключения', 'error');
+                }
+            }
+            
+            disconnect() {
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+            }
+            
+            ping() {
+                if (this.ws && this.isConnected) {
+                    const message = {
+                        type: 'ping',
+                        timestamp: Date.now()
+                    };
+                    this.sendMessage(message);
+                    this.log(`🏓 Отправлен ping: ${JSON.stringify(message)}`);
+                }
+            }
+            
+            sendMessage(message) {
+                if (this.ws && this.isConnected) {
+                    this.ws.send(JSON.stringify(message));
+                    this.log(`📤 Отправлено: ${JSON.stringify(message)}`);
+                }
+            }
+        }
+        
+        // Инициализация при загрузке страницы
+        window.addEventListener('load', () => {
+            new WebSocketDebugger();
+        });
+    </script>
+</body>
+</html> 

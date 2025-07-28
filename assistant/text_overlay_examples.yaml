@@ -1,0 +1,132 @@
+# Примеры конфигураций для текстового overlay
+
+# Стандартная конфигурация (по умолчанию)
+TEXT_OVERLAY_STANDARD:
+  update_min_chars: 50
+  update_on_punctuation: true
+  fade_duration_ms: 100
+  position:
+    bottom: 10vh
+    left: 50%
+  size:
+    font_size: 2.5em
+    max_width: 90vw
+    padding: 0.5em 1.5em
+  mobile:
+    font_size: 1.2em
+    padding: 0.3em 0.7em
+
+# Конфигурация для большого экрана
+TEXT_OVERLAY_LARGE:
+  update_min_chars: 50
+  update_on_punctuation: true
+  fade_duration_ms: 100
+  position:
+    bottom: 15vh
+    left: 50%
+  size:
+    font_size: 3.5em
+    max_width: 80vw
+    padding: 0.8em 2em
+  mobile:
+    font_size: 1.5em
+    padding: 0.4em 0.8em
+
+# Конфигурация для маленького экрана
+TEXT_OVERLAY_SMALL:
+  update_min_chars: 50
+  update_on_punctuation: true
+  fade_duration_ms: 100
+  position:
+    bottom: 5vh
+    left: 50%
+  size:
+    font_size: 1.8em
+    max_width: 95vw
+    padding: 0.3em 1em
+  mobile:
+    font_size: 1em
+    padding: 0.2em 0.5em
+
+# Конфигурация для верхней части экрана
+TEXT_OVERLAY_TOP:
+  update_min_chars: 50
+  update_on_punctuation: true
+  fade_duration_ms: 100
+  position:
+    bottom: auto
+    top: 10vh
+    left: 50%
+  size:
+    font_size: 2.5em
+    max_width: 90vw
+    padding: 0.5em 1.5em
+  mobile:
+    font_size: 1.2em
+    padding: 0.3em 0.7em
+
+# Конфигурация для левой части экрана
+TEXT_OVERLAY_LEFT:
+  update_min_chars: 50
+  update_on_punctuation: true
+  fade_duration_ms: 100
+  position:
+    bottom: 10vh
+    left: 10%
+    transform: none
+  size:
+    font_size: 2em
+    max_width: 40vw
+    padding: 0.5em 1em
+  mobile:
+    font_size: 1em
+    padding: 0.3em 0.7em
+
+# Конфигурация для правой части экрана
+TEXT_OVERLAY_RIGHT:
+  update_min_chars: 50
+  update_on_punctuation: true
+  fade_duration_ms: 100
+  position:
+    bottom: 10vh
+    left: 90%
+    transform: translateX(-100%)
+  size:
+    font_size: 2em
+    max-width: 40vw
+    padding: 0.5em 1em
+  mobile:
+    font_size: 1em
+    padding: 0.3em 0.7em
+
+# Конфигурация с быстрыми обновлениями
+TEXT_OVERLAY_FAST:
+  update_min_chars: 20
+  update_on_punctuation: true
+  fade_duration_ms: 50
+  position:
+    bottom: 10vh
+    left: 50%
+  size:
+    font_size: 2.5em
+    max_width: 90vw
+    padding: 0.5em 1.5em
+  mobile:
+    font_size: 1.2em
+    padding: 0.3em 0.7em
+
+# Конфигурация с медленными обновлениями
+TEXT_OVERLAY_SLOW:
+  update_min_chars: 100
+  update_on_punctuation: false
+  fade_duration_ms: 200
+  position:
+    bottom: 10vh
+    left: 50%
+  size:
+    font_size: 2.5em
+    max_width: 90vw
+    padding: 0.5em 1.5em
+  mobile:
+    font_size: 1.2em
+    padding: 0.3em 0.7em 
