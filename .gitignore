@@ -1,0 +1,90 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyd
+*.py[cod]
+*$py.class
+*.so
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Конфигурационные файлы (содержат приватные данные)
+*.yaml
+config.yaml
+assistant/config.yaml
+assistant/config.py
+
+# Twitch аутентификация
+assistant/twitch_auth.py
+assistant/start_twitch_auth.bat
+twitch_auth.py
+start_twitch_auth.bat
+
+# YouTube аутентификация
+assistant/youtube_credentials.json
+assistant/youtube_send_message_example.py
+assistant/youtube_get_refresh_token.py
+youtube_credentials.json
+*_credentials.json
+*_token.json
+
+# Модели (большие файлы)
+*.pth
+*.onnx
+*.bin
+*.safetensors
+*.pt
+*.ckpt
+*.h5
+*.pb
+*.tflite
+models/
+checkpoints/
+weights/
+*.model
+*.weights
+
+# LLama.cpp и Vulkan (большие бинарники и библиотеки)
+llama.cpp/
+llama_vulkan/
+*.dll
+*.lib
+
+# Index-TTS (большая папка)
+index-tts/
+
+# LLM модели
+llm/
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.temp
+*.cache
+logs/
+temp/
+tmp/
+
+# IDE и редакторы
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node modules (если есть)
+node_modules/
+package-lock.json
+
+# Системные файлы Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Бэкапы
+*.bak
+*.backup
+*~
