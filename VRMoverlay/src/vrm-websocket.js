@@ -97,12 +97,12 @@ class VRMWebSocketClient {
         this.hasSentInitialMessage = false;
         this.lastPingTime = 0;
         this.pingInterval = null;
-        
+
         // Настройки подключения
         this.wsHost = '192.168.1.4'; // Измените на ваш IP
         this.wsPort = 31992; // Порт WebSocket ассистента
         this.textWsPort = 31993; // Порт для текстового overlay
-        
+
         // Настройки текстового оверлея
         this.textOverlayConfig = {
             defaultDuration: 12000, // 12 секунд по умолчанию
@@ -111,29 +111,29 @@ class VRMWebSocketClient {
             fadeInTime: 300,        // Время появления
             fadeOutTime: 500        // Время исчезновения
         };
-        
+
         this.init();
     }
-    
+
     init() {
         this.connect();
         this.setupEventListeners();
     }
-    
+
     connect() {
         try {
             const wsUrl = `ws://${this.wsHost}:${this.wsPort}`;
             console.log(`🔌 Подключение к WebSocket: ${wsUrl}`);
             console.log(`🔌 Хост: ${this.wsHost}, Порт: ${this.wsPort}`);
-            
+
             this.ws = new WebSocket(wsUrl);
-            
+
             this.ws.onopen = () => {
                 console.log('✅ WebSocket подключен к ассистенту');
                 this.isConnected = true;
                 this.reconnectAttempts = 0;
                 this.updateStatus('connected');
-                
+
                 // Отправляем идентификатор VRM клиента только при первом подключении
                 if (!this.hasSentInitialMessage) {
                     this.sendMessage({
@@ -144,53 +144,53 @@ class VRMWebSocketClient {
                     });
                     this.hasSentInitialMessage = true;
                 } else {
-                                    // При переподключении отправляем сообщение о реконнекте
-                this.sendMessage({
-                    type: 'vrm_client',
-                    client: 'vrm_overlay',
-                    version: '1.0',
-                    reconnect: true
-                });
-                
-                // Запускаем периодическую проверку соединения
-                this.startPingInterval();
-            }
+                    // При переподключении отправляем сообщение о реконнекте
+                    this.sendMessage({
+                        type: 'vrm_client',
+                        client: 'vrm_overlay',
+                        version: '1.0',
+                        reconnect: true
+                    });
+
+                    // Запускаем периодическую проверку соединения
+                    this.startPingInterval();
+                }
             };
-            
+
             this.ws.onmessage = (event) => {
                 this.handleMessage(event.data);
             };
-            
+
             this.ws.onclose = (event) => {
                 console.log(`❌ WebSocket соединение закрыто. Код: ${event.code}, Причина: ${event.reason}`);
                 this.isConnected = false;
                 this.stopPingInterval();
                 this.updateStatus('disconnected');
-                
+
                 // Не переподключаемся при нормальном закрытии (код 1000)
                 if (event.code !== 1000) {
-                this.scheduleReconnect();
+                    this.scheduleReconnect();
                 } else {
                     console.log('✅ WebSocket закрыт нормально, переподключение не требуется');
                 }
             };
-            
+
             this.ws.onerror = (error) => {
                 console.error('❌ WebSocket ошибка:', error);
                 this.updateStatus('error');
-                
+
                 // В режиме OBS не показываем ошибки пользователю
                 if (!window.IS_OBS_MODE) {
                     console.warn('⚠️ WebSocket не подключен. Ассистент может быть не запущен.');
                 }
             };
-            
+
         } catch (error) {
             console.error('❌ Ошибка создания WebSocket:', error);
             this.scheduleReconnect();
         }
     }
-    
+
     handleMessage(data) {
         try {
             const message = JSON.parse(data);
@@ -203,9 +203,9 @@ class VRMWebSocketClient {
                 case 'animation':
                     this.handleAnimation(message, received);
                     break;
-//                case 'text':
-//                    this.handleText(message);
-//                    break;
+                //                case 'text':
+                //                    this.handleText(message);
+                //                    break;
                 case 'status':
                     this.handleStatus(message, received);
                     break;
@@ -240,13 +240,13 @@ class VRMWebSocketClient {
             console.error('❌ Ошибка обработки сообщения:', error);
         }
     }
-    
+
     handleEmotion(message, received) {
         const { emotion, intensity = 1.0, duration = 2000, priority = 5 } = message;
         console.log(`😊 Применяем эмоцию: ${emotion} (интенсивность: ${intensity}, приоритет: ${priority})`);
         const applied = performance.now();
         logVrmTiming('emotion', received, applied);
-        
+
         if (this.vrmApp) {
             try {
                 // Используем новую систему blend shapes
@@ -260,11 +260,11 @@ class VRMWebSocketClient {
                 console.error('❌ Ошибка применения эмоции:', error);
                 // Fallback к старой системе
                 if (this.vrmApp.applyEmotion) {
-            this.vrmApp.applyEmotion(emotion);
+                    this.vrmApp.applyEmotion(emotion);
                 }
             }
         }
-        
+
         // Автоматически сбрасываем эмоцию через указанное время
         if (duration > 0) {
             setTimeout(() => {
@@ -273,7 +273,7 @@ class VRMWebSocketClient {
                         if (this.vrmApp.blendShapeManager) {
                             this.vrmApp.blendShapeManager.resetEmotions();
                         } else if (this.vrmApp.resetEmotions) {
-                    this.vrmApp.resetEmotions();
+                            this.vrmApp.resetEmotions();
                         }
                     } catch (error) {
                         console.error('❌ Ошибка сброса эмоций:', error);
@@ -282,18 +282,18 @@ class VRMWebSocketClient {
             }, duration);
         }
     }
-    
+
     handleAnimation(message, received) {
         const { animation, duration = 5000 } = message;
         console.log(`🎭 Воспроизводим анимацию: ${animation}`);
         const applied = performance.now();
         logVrmTiming('animation', received, applied);
-        
+
         // Воспроизводим анимацию
         if (this.vrmApp && this.vrmApp.playMovement) {
             this.vrmApp.playMovement(animation);
         }
-        
+
         // Автоматически возвращаемся к idle через указанное время
         if (duration > 0) {
             setTimeout(() => {
@@ -303,20 +303,20 @@ class VRMWebSocketClient {
             }, duration);
         }
     }
-    
-//    handleText(message) {
-//        const { text, duration } = message;
-//        const finalDuration = this.validateDuration(duration || this.textOverlayConfig.defaultDuration);
-//        console.log(`💬 Отображаем текст: ${text} (${finalDuration}ms)`);
-//        showTextOverlay(text, finalDuration);
-//    }
-    
+
+    //    handleText(message) {
+    //        const { text, duration } = message;
+    //        const finalDuration = this.validateDuration(duration || this.textOverlayConfig.defaultDuration);
+    //        console.log(`💬 Отображаем текст: ${text} (${finalDuration}ms)`);
+    //        showTextOverlay(text, finalDuration);
+    //    }
+
     handleStatus(message, received) {
         const { status } = message;
         console.log(`📊 Статус ассистента: ${status}`);
         const applied = performance.now();
         logVrmTiming('status', received, applied);
-        
+
         if (this.vrmApp) {
             // Используем новую систему state machine
             if (this.vrmApp.stateMachine) {
@@ -333,40 +333,40 @@ class VRMWebSocketClient {
             }
         }
     }
-    
+
     handleStatusFallback(status) {
         if (!this.vrmApp || !this.vrmApp.playMovement) return;
-        
+
         switch (status) {
             case 'idle':
-                    this.vrmApp.playMovement('idle');
+                this.vrmApp.playMovement('idle');
                 break;
             case 'talking':
-                    this.vrmApp.playMovement('talking');
+                this.vrmApp.playMovement('talking');
                 break;
             case 'thinking':
-                    this.vrmApp.playMovement('thinking_move');
+                this.vrmApp.playMovement('thinking_move');
                 break;
             case 'waiting':
-                    this.vrmApp.playMovement('idle');
+                this.vrmApp.playMovement('idle');
                 break;
             default:
                 console.log(`⚠️ Неизвестный статус: ${status}`);
         }
     }
-    
+
     handleSpeech(message, received) {
         const { isSpeaking, text } = message;
         console.log(`🗣️ Речь: ${isSpeaking ? 'началась' : 'закончилась'} - ${text}`);
         const applied = performance.now();
         logVrmTiming('speech', received, applied);
-        
+
         if (isSpeaking) {
             // Начинаем анимацию речи
             if (this.vrmApp && this.vrmApp.playMovement) {
                 this.vrmApp.playMovement('talking');
             }
-            
+
             // Показываем текст речи
             if (text) {
                 const duration = this.textOverlayConfig.defaultDuration;
@@ -379,13 +379,13 @@ class VRMWebSocketClient {
             }
         }
     }
-    
+
     handleLipsyncMessage(message, received) {
         if (!this.vrmApp) return;
-        
+
         const applied = performance.now();
         logVrmTiming('lipsync', received, applied);
-        
+
         try {
             // Используем новую систему blend shapes
             if (this.vrmApp.blendShapeManager) {
@@ -397,16 +397,16 @@ class VRMWebSocketClient {
                     'Fcl_MTH_O': message.O || 0,
                     'energy': message.energy || 0
                 };
-                
-        // Если есть energy — используем energy lipsync
-        if (typeof message.energy !== 'undefined') {
+
+                // Если есть energy — используем energy lipsync
+                if (typeof message.energy !== 'undefined') {
                     values['Fcl_MTH_A'] = 0;
                     values['Fcl_MTH_I'] = 0;
                     values['Fcl_MTH_U'] = 0;
                     values['Fcl_MTH_E'] = 0;
                     values['Fcl_MTH_O'] = 0;
                 }
-                
+
                 this.vrmApp.blendShapeManager.applyLipsync(values, 10);
             } else if (this.vrmApp.setLipsync) {
                 // Fallback к старой системе
@@ -425,18 +425,18 @@ class VRMWebSocketClient {
             console.error('❌ Ошибка обработки липсинка:', error);
             // Fallback к старой системе
             if (this.vrmApp.setLipsync && typeof message.energy !== 'undefined') {
-            this.vrmApp.setLipsync({
-                'Fcl_MTH_A': 0,
-                'Fcl_MTH_I': 0,
-                'Fcl_MTH_U': 0,
-                'Fcl_MTH_E': 0,
-                'Fcl_MTH_O': 0,
-                'energy': message.energy
-            });
-        }
+                this.vrmApp.setLipsync({
+                    'Fcl_MTH_A': 0,
+                    'Fcl_MTH_I': 0,
+                    'Fcl_MTH_U': 0,
+                    'Fcl_MTH_E': 0,
+                    'Fcl_MTH_O': 0,
+                    'energy': message.energy
+                });
+            }
         }
     }
-    
+
     updateStatus(status) {
         // Обновляем индикатор статуса подключения
         const statusIndicator = document.getElementById('ws-status');
@@ -445,15 +445,15 @@ class VRMWebSocketClient {
             statusIndicator.className = `status-${status}`;
         }
     }
-    
+
     scheduleReconnect() {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
             console.log(`🔄 Попытка переподключения ${this.reconnectAttempts}/${this.maxReconnectAttempts} через ${this.reconnectDelay}ms`);
-            
+
             // Увеличиваем задержку с каждой попыткой
             const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-            
+
             setTimeout(() => {
                 console.log(`🔄 Выполняем попытку переподключения ${this.reconnectAttempts}...`);
                 this.connect();
@@ -461,7 +461,7 @@ class VRMWebSocketClient {
         } else {
             console.error('❌ Превышено максимальное количество попыток переподключения');
             this.updateStatus('failed');
-            
+
             // Сбрасываем счетчик попыток через некоторое время для возможности повторного подключения
             setTimeout(() => {
                 this.reconnectAttempts = 0;
@@ -469,7 +469,7 @@ class VRMWebSocketClient {
             }, 30000); // 30 секунд
         }
     }
-    
+
     setupEventListeners() {
         // Добавляем обработчики событий для тестирования
         window.addEventListener('beforeunload', () => {
@@ -477,7 +477,7 @@ class VRMWebSocketClient {
                 this.ws.close();
             }
         });
-        
+
         // Проверяем соединение при возвращении на вкладку
         window.addEventListener('focus', () => {
             if (this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -486,13 +486,13 @@ class VRMWebSocketClient {
             }
         });
     }
-    
+
     startPingInterval() {
         // Останавливаем предыдущий интервал
         if (this.pingInterval) {
             clearInterval(this.pingInterval);
         }
-        
+
         // Запускаем новый интервал проверки каждые 30 секунд
         this.pingInterval = setInterval(() => {
             if (this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -504,14 +504,14 @@ class VRMWebSocketClient {
             }
         }, 30000); // 30 секунд
     }
-    
+
     stopPingInterval() {
         if (this.pingInterval) {
             clearInterval(this.pingInterval);
             this.pingInterval = null;
         }
     }
-    
+
     sendMessage(message) {
         if (this.ws && this.isConnected) {
             this.ws.send(JSON.stringify(message));
@@ -519,7 +519,7 @@ class VRMWebSocketClient {
             console.warn('⚠️ WebSocket не подключен, сообщение не отправлено');
         }
     }
-    
+
     // Методы для отправки команд ассистенту
     requestEmotion(emotion, intensity = 1.0) {
         this.sendMessage({
@@ -528,7 +528,7 @@ class VRMWebSocketClient {
             intensity: intensity
         });
     }
-    
+
     requestAnimation(animation, duration = 5000) {
         this.sendMessage({
             type: 'request_animation',
@@ -536,39 +536,39 @@ class VRMWebSocketClient {
             duration: duration
         });
     }
-    
+
     // Метод для тестирования подключения
     testConnection() {
         if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
             console.log('⚠️ WebSocket не подключен для ping');
             return false;
         }
-        
+
         this.lastPingTime = Date.now();
         this.sendMessage({
             type: 'ping',
             timestamp: this.lastPingTime
         });
-        
+
         console.log('🏓 Отправлен ping для проверки соединения');
         return true;
     }
-    
+
     validateDuration(duration) {
         const { minDuration, maxDuration } = this.textOverlayConfig;
         return Math.max(minDuration, Math.min(maxDuration, duration));
     }
 
     // === НОВЫЕ ОБРАБОТЧИКИ ДЛЯ УПРАВЛЕНИЯ ===
-    
+
     handleCameraControl(message, received) {
         const { action, value } = message;
         console.log(`📷 Управление камерой: ${action} = ${value}`);
         const applied = performance.now();
         logVrmTiming('camera_control', received, applied);
-        
+
         if (!this.vrmApp) return;
-        
+
         switch (action) {
             case 'distance':
                 if (this.vrmApp.camera) {
@@ -587,15 +587,15 @@ class VRMWebSocketClient {
                 break;
         }
     }
-    
+
     handlePoseControl(message, received) {
         const { bone, axis, value } = message;
         console.log(`🧍 Управление позой: ${bone}.${axis} = ${value}`);
         const applied = performance.now();
         logVrmTiming('pose_control', received, applied);
-        
+
         if (!this.vrmApp) return;
-        
+
         const boneObj = this.vrmApp.findBoneByName(bone);
         if (boneObj) {
             switch (axis) {
@@ -611,17 +611,17 @@ class VRMWebSocketClient {
             }
         }
     }
-    
+
     handleLightControl(message, received) {
         const { action, value } = message;
         console.log(`💡 Управление освещением: ${action} = ${value}`);
         const applied = performance.now();
         logVrmTiming('light_control', received, applied);
-        
+
         if (!this.vrmApp || !this.vrmApp.lights) return;
-        
+
         const intensity = parseFloat(value);
-        
+
         switch (action) {
             case 'ambient':
                 if (this.vrmApp.lights.ambient) {
@@ -638,10 +638,55 @@ class VRMWebSocketClient {
                     this.vrmApp.lights.point.intensity = intensity * 0.5;
                 }
                 break;
+            case 'intensity':
             case 'all':
                 if (this.vrmApp.lights.ambient) this.vrmApp.lights.ambient.intensity = intensity * 0.6;
                 if (this.vrmApp.lights.directional) this.vrmApp.lights.directional.intensity = intensity;
                 if (this.vrmApp.lights.point) this.vrmApp.lights.point.intensity = intensity * 0.5;
+
+                // Обновляем материалы VRM модели (для MeshBasicMaterial)
+                if (this.vrmApp.vrm && this.vrmApp.vrm.scene) {
+                    let materialsUpdated = 0;
+                    this.vrmApp.vrm.scene.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            const materials = Array.isArray(child.material) ? child.material : [child.material];
+
+                            materials.forEach(mat => {
+                                // MeshBasicMaterial не использует освещение
+                                if (mat.type === 'MeshBasicMaterial') {
+                                    // Сохраняем оригинальный цвет
+                                    if (!mat.userData.originalColor) {
+                                        mat.userData.originalColor = mat.color.clone();
+                                    }
+
+                                    // Изменяем яркость цвета
+                                    const brightnessMultiplier = 0.2 + (intensity * 0.8);
+                                    mat.color.copy(mat.userData.originalColor);
+                                    mat.color.multiplyScalar(brightnessMultiplier);
+                                    mat.needsUpdate = true;
+                                    materialsUpdated++;
+                                }
+                                // MToon материалы
+                                else if (mat.isMToonMaterial || mat.type === 'MToonMaterial') {
+                                    if (mat.shadeMultiply !== undefined) {
+                                        mat.shadeMultiply = 0.3 + (intensity * 0.7);
+                                    }
+                                    if (mat.emissive) {
+                                        mat.emissive.setScalar(intensity * 0.1);
+                                    }
+                                    mat.needsUpdate = true;
+                                    materialsUpdated++;
+                                }
+                            });
+                        }
+                    });
+
+                    if (materialsUpdated > 0) {
+                        console.log(`✅ Обновлено ${materialsUpdated} материалов в OBS`);
+                    }
+                }
+
+                console.log(`✅ Все источники света обновлены: ambient=${(intensity * 0.6).toFixed(2)}, directional=${intensity.toFixed(2)}, point=${(intensity * 0.5).toFixed(2)}`);
                 break;
         }
     }

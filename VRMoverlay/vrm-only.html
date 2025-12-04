@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +12,8 @@
             box-sizing: border-box;
         }
 
-        html, body {
+        html,
+        body {
             background: transparent !important;
             overflow: hidden;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -25,12 +27,21 @@
         }
 
         /* Скрываем все элементы управления */
-        .controls, .info-panel, .status-bar, .loading {
+        .controls,
+        .info-panel,
+        .status-bar,
+        .loading {
             display: none !important;
         }
 
         /* Скрываем все кнопки и панели */
-        button, select, input, label, h3, h4, .control-group {
+        button,
+        select,
+        input,
+        label,
+        h3,
+        h4,
+        .control-group {
             display: none !important;
         }
 
@@ -45,11 +56,14 @@
         }
 
         /* Скрываем все отладочные элементы */
-        .debug-info, .fps-counter, .resolution-info {
+        .debug-info,
+        .fps-counter,
+        .resolution-info {
             display: none !important;
         }
     </style>
 </head>
+
 <body>
     <!-- Только canvas для VRM модели -->
     <canvas id="canvas"></canvas>
@@ -63,7 +77,11 @@
     <!-- VRM -->
     <script src="https://unpkg.com/@pixiv/three-vrm@2.0.0/lib/three-vrm.min.js"></script>
 
+    <!-- TWEEN.js для плавных переходов анимаций -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
     <!-- Загружаем JavaScript код -->
+    <script src="src/performance-optimizer.js"></script>
     <script src="src/vrm-websocket.js"></script>
     <script src="src/animation-system.js"></script>
     <script src="src/animation-integration.js"></script>
@@ -72,19 +90,19 @@
     <script>
         // Дополнительные настройки для OBS режима
         window.IS_OBS_MODE = true;
-        
+
         // Настройки WebSocket для OBS режима
         window.WS_HOST = '192.168.1.4';
         window.WS_PORT = 31992;
-        
+
         // Отключаем все элементы управления при загрузке
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('🎭 VRM Overlay в режиме OBS загружен');
-            
+
             // Скрываем все элементы управления
             const elementsToHide = [
                 '.controls',
-                '.info-panel', 
+                '.info-panel',
                 '.status-bar',
                 '.loading',
                 'button',
@@ -99,14 +117,14 @@
                 '.fps-counter',
                 '.resolution-info'
             ];
-            
+
             elementsToHide.forEach(selector => {
                 const elements = document.querySelectorAll(selector);
                 elements.forEach(el => {
                     el.style.display = 'none';
                 });
             });
-            
+
             // Убеждаемся, что canvas занимает весь экран
             const canvas = document.getElementById('canvas');
             if (canvas) {
@@ -117,4 +135,5 @@
         });
     </script>
 </body>
-</html> 
+
+</html>

@@ -1,342 +1,150 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VRM Streaming App</title>
     <!-- TWEEN.js для плавных переходов анимаций -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: transparent !important;
-            overflow: hidden;
-        }
-
-        #container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        #canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        .controls {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 100;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 15px;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            max-width: 280px;
-            max-height: 80vh;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: #667eea #f0f0f0;
-        }
-
-        .controls::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .controls::-webkit-scrollbar-track {
-            background: #f0f0f0;
-            border-radius: 3px;
-        }
-
-        .controls::-webkit-scrollbar-thumb {
-            background: #667eea;
-            border-radius: 3px;
-        }
-
-        .controls h2 {
-            color: #333;
-            margin-bottom: 12px;
-            font-size: 16px;
-            text-align: center;
-        }
-
-        .control-group {
-            margin-bottom: 12px;
-        }
-
-        .control-group label {
-            display: block;
-            margin-bottom: 4px;
-            color: #555;
-            font-weight: 500;
-            font-size: 13px;
-        }
-
-        .control-group input,
-        .control-group select {
-            width: 100%;
-            padding: 6px 10px;
-            border: 2px solid #e1e5e9;
-            border-radius: 6px;
-            font-size: 13px;
-            transition: border-color 0.3s ease;
-        }
-
-        .control-group input:focus,
-        .control-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            transition: transform 0.2s ease;
-            width: 100%;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        /* Стили для кнопок эмоций */
-        #emotionControls {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 4px;
-            margin-top: 8px;
-        }
-
-        .emotion-btn {
-            padding: 6px 8px;
-            border: 2px solid #e1e5e9;
-            border-radius: 6px;
-            background: white;
-            cursor: pointer;
-            font-size: 11px;
-            transition: all 0.2s ease;
-            text-align: center;
-            min-height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .emotion-btn:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
-        }
-
-        .status {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            z-index: 100;
-        }
-
-        .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 18px;
-            z-index: 100;
-        }
-
-        .streaming-info {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            z-index: 100;
-        }
-
-        .streaming-info h3 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-
-        .streaming-info p {
-            color: #666;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-
-        /* Стили для управления руками */
-        .arm-controls {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        .arm-section {
-            flex: 1;
-            background: rgba(102, 126, 234, 0.1);
-            padding: 6px;
-            border-radius: 6px;
-            border: 1px solid rgba(102, 126, 234, 0.2);
-        }
-
-        .arm-section h4 {
-            color: #333;
-            margin-bottom: 6px;
-            font-size: 11px;
-            text-align: center;
-            font-weight: 600;
-        }
-
-        .arm-section label {
-            font-size: 10px;
-            margin-bottom: 2px;
-            color: #555;
-            display: block;
-        }
-
-        .arm-section input[type="range"] {
-            width: 100%;
-            margin-bottom: 4px;
-            height: 4px;
-        }
-
-        .arm-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px;
-        }
-
-        .arm-buttons .btn {
-            font-size: 10px;
-            padding: 4px 6px;
-            min-height: 24px;
-        }
-
-        /* Стили для индикатора статуса WebSocket */
-        .status-connected {
-            color: #28a745;
-            font-weight: bold;
-        }
-
-        .status-disconnected {
-            color: #dc3545;
-            font-weight: bold;
-        }
-
-        .status-error {
-            color: #ffc107;
-            font-weight: bold;
-        }
-
-        .status-failed {
-            color: #6c757d;
-            font-weight: bold;
-        }
-    </style>
+    <link rel="stylesheet" href="src/style.css">
 </head>
+
 <body>
     <div id="container">
         <canvas id="canvas"></canvas>
-        
-        <div class="controls">
-            <h2>🎮 Управление VRM</h2>
-            
-            <div class="control-group">
-                <label for="modelSelect">Модель:</label>
-                <select id="modelSelect">
-                    <option value="mSkai_art.vrm">mSkai_art.vrm</option>
-                </select>
+
+        <!-- Кнопка для открытия меню, когда оно скрыто -->
+        <button id="toggleControls" title="Показать настройки">⚙️</button>
+
+        <div class="controls" id="controlsPanel">
+            <h2>
+                <span>🎮 Управление VRM</span>
+                <button id="closeControls"
+                    style="margin-left:auto; background:none; border:none; color:white; cursor:pointer;">✕</button>
+            </h2>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="general">Общие</button>
+                <button class="tab-btn" data-tab="animations">Анимации</button>
+                <button class="tab-btn" data-tab="system">Система</button>
             </div>
 
-            <div class="control-group">
-                <label for="cameraDistance">Расстояние камеры:</label>
-                <input type="range" id="cameraDistance" min="1" max="10" step="0.1" value="3">
-            </div>
-
-            <div class="control-group">
-                <label for="rotationSpeed">Поворот модели:</label>
-                <input type="range" id="rotationSpeed" min="-180" max="180" step="1" value="180">
-                <button class="btn" id="faceCameraBtn" style="margin-top: 5px; font-size: 11px; padding: 4px 8px;">👤 Лицом к камере</button>
-            </div>
-
-            <div class="control-group">
-                <label for="lightIntensity">Интенсивность света:</label>
-                <input type="range" id="lightIntensity" min="0" max="2" step="0.1" value="1">
-                <button class="btn" id="resetLightBtn" style="margin-top: 5px; font-size: 11px; padding: 4px 8px;">🔄 Сброс света</button>
-            </div>
-
-            <button class="btn" id="fullscreenBtn">🖥️ Полноэкранный режим</button>
-            <button class="btn" id="screenshotBtn" style="margin-top: 10px;">📸 Сделать скриншот</button>
-            <button class="btn" id="performanceBtn" style="margin-top: 10px;">🎯 Настройки производительности</button>
-            <button class="btn" id="websocketTestBtn" style="margin-top: 10px;">🔌 Тест WebSocket</button>
-            
-            <!-- Кнопки эмоций -->
-            <div class="control-group">
-                <label>Эмоции:</label>
-                <div id="emotionControls">
-                    <button class="emotion-btn" data-action="manualBlink">😉 Моргнуть</button>
-                    <button class="emotion-btn" data-action="setEmotion" data-emotion="happy">😊 Радость</button>
-                    <button class="emotion-btn" data-action="setEmotion" data-emotion="sad">😢 Грусть</button>
-                    <button class="emotion-btn" data-action="setEmotion" data-emotion="angry">😠 Злость</button>
-                    <button class="emotion-btn" data-action="setEmotion" data-emotion="surprised">😲 Удивление</button>
-                    <button class="emotion-btn" data-action="setEmotion" data-emotion="neutral">😐 Нейтрально</button>
-                    <button class="emotion-btn" data-action="resetEmotions">🔄 Сбросить эмоции</button>
+            <!-- Tab: General -->
+            <div id="tab-general" class="tab-content active">
+                <div class="control-group">
+                    <label for="modelSelect">Модель:</label>
+                    <select id="modelSelect">
+                        <option value="mSkai_art.vrm">mSkai_art.vrm</option>
+                    </select>
                 </div>
+
+                <div class="control-group">
+                    <label for="cameraDistance">Расстояние камеры:</label>
+                    <input type="range" id="cameraDistance" min="1" max="10" step="0.1" value="3">
+                </div>
+
+                <div class="control-group">
+                    <label for="rotationSpeed">Поворот модели:</label>
+                    <input type="range" id="rotationSpeed" min="-180" max="180" step="1" value="180">
+                    <button class="btn btn-secondary" id="faceCameraBtn">👤 Лицом к камере</button>
+                </div>
+
+                <div class="control-group">
+                    <label for="lightIntensity">Интенсивность света:</label>
+                    <input type="range" id="lightIntensity" min="0" max="2" step="0.1" value="1">
+                    <button class="btn btn-secondary" id="resetLightBtn">🔄 Сброс света</button>
+                </div>
+            </div>
+
+            <!-- Tab: Animations -->
+            <div id="tab-animations" class="tab-content">
+                <div class="control-group">
+                    <label>Настройки анимации (Тюнинг):</label>
+                    <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                        <label for="swayHead" style="font-size: 11px;">Качание головы: <span
+                                id="swayHeadValue">0.05</span></label>
+                        <input type="range" id="swayHead" min="0" max="0.2" step="0.001" value="0.05">
+
+                        <label for="swayBody" style="font-size: 11px;">Качание тела: <span
+                                id="swayBodyValue">0.05</span></label>
+                        <input type="range" id="swayBody" min="0" max="0.2" step="0.001" value="0.05">
+
+                        <label for="breathInt" style="font-size: 11px;">Дыхание: <span
+                                id="breathIntValue">0.01</span></label>
+                        <input type="range" id="breathInt" min="0" max="0.2" step="0.001" value="0.01">
+
+                        <div style="margin-top: 10px; display: flex; gap: 10px;">
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" id="mouseTracking" checked> Слежение за мышью
+                            </label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" id="randomActions" checked> Случайные движения
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Эмоции:</label>
+                    <div id="emotionControls">
+                        <button class="emotion-btn" data-action="manualBlink">😉 Моргнуть</button>
+                        <button class="emotion-btn" data-action="setEmotion" data-emotion="happy">😊 Радость</button>
+                        <button class="emotion-btn" data-action="setEmotion" data-emotion="sad">😢 Грусть</button>
+                        <button class="emotion-btn" data-action="setEmotion" data-emotion="angry">😠 Злость</button>
+                        <button class="emotion-btn" data-action="setEmotion" data-emotion="surprised">😲
+                            Удивление</button>
+                        <button class="emotion-btn" data-action="setEmotion" data-emotion="neutral">😐
+                            Нейтрально</button>
+                        <button class="emotion-btn" data-action="resetEmotions" style="grid-column: span 2;">🔄 Сбросить
+                            эмоции</button>
+                    </div>
+                </div>
+                <!-- Dynamic animation controls will be injected here -->
+                <div id="dynamicAnimationControls"></div>
+            </div>
+
+            <!-- Tab: System -->
+            <div id="tab-system" class="tab-content">
+                <div class="control-group">
+                    <label>Действия:</label>
+                    <button class="btn" id="fullscreenBtn">🖥️ Полноэкранный режим</button>
+                    <button class="btn" id="screenshotBtn">📸 Сделать скриншот</button>
+                    <button class="btn" id="performanceBtn">🎯 Производительность</button>
+                    <button class="btn" id="websocketTestBtn">🔌 Тест WebSocket</button>
+                </div>
+                <!-- Dynamic system controls will be injected here -->
+                <div id="dynamicSystemControls"></div>
             </div>
         </div>
 
         <div class="streaming-info">
-            <h3>📺 Информация о трансляции</h3>
-            <p><strong>Разрешение:</strong> <span id="resolution">1920x1080</span></p>
-            <p><strong>FPS:</strong> <span id="fps">60</span></p>
-            <p><strong>Статус:</strong> <span id="status">Готово к трансляции</span></p>
-            <p><strong>WebSocket:</strong> <span id="ws-status" class="status-disconnected">Отключен</span></p>
+            <h3>📺 Статус трансляции</h3>
+            <p>Разрешение: <span id="resolution">1920x1080</span></p>
+            <p>FPS: <span id="fps">60</span></p>
+            <p>Статус: <span id="status">Готово</span></p>
+            <p>WebSocket: <span id="ws-status" class="status-disconnected">Отключен</span></p>
         </div>
 
-        <div class="status" id="statusBar">
+        <div class="status-toast" id="statusBar">
             Загрузка модели...
         </div>
 
         <div class="loading" id="loading">
-            Загрузка VRM модели...
+            ⏳ Загрузка VRM модели...
         </div>
     </div>
 
-    <div id="vrm-timing" style="position:fixed;bottom:10px;right:10px;background:#222;color:#fff;padding:8px;border-radius:6px;z-index:9999;font-size:12px"></div>
+    <div id="vrm-timing"
+        style="position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.7);color:#fff;padding:8px;border-radius:6px;z-index:9999;font-size:12px;pointer-events:none;">
+    </div>
 
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    
+
     <!-- Наши скрипты -->
     <script src="src/animation-system.js"></script>
     <script src="src/animation-integration.js"></script>
@@ -344,14 +152,23 @@
     <script src="src/vrm-websocket.js"></script>
     <script src="src/main.js"></script>
     <script>
-    setInterval(() => {
-        const hist = window.vrmTimingHistory || [];
-        let html = '<b>VRM Timing</b><br>';
-        for (const t of hist.slice(-5).reverse()) {
-            html += `${t.type}: <b>${t.delay.toFixed(1)}ms</b><br>`;
-        }
-        document.getElementById('vrm-timing').innerHTML = html;
-    }, 1000);
+        // Simple toggle logic for the sidebar
+        document.getElementById('closeControls').addEventListener('click', () => {
+            document.getElementById('controlsPanel').classList.add('collapsed');
+        });
+        document.getElementById('toggleControls').addEventListener('click', () => {
+            document.getElementById('controlsPanel').classList.remove('collapsed');
+        });
+
+        setInterval(() => {
+            const hist = window.vrmTimingHistory || [];
+            let html = '<b>VRM Timing</b><br>';
+            for (const t of hist.slice(-5).reverse()) {
+                html += `${t.type}: <b>${t.delay.toFixed(1)}ms</b><br>`;
+            }
+            document.getElementById('vrm-timing').innerHTML = html;
+        }, 1000);
     </script>
 </body>
-</html> 
+
+</html>

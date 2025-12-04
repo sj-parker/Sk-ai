@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Overlay</title>
+    <style>
+        :root {
+            --text-overlay-bottom: 10vh;
+            --text-overlay-top: auto;
+            --text-overlay-left: 50%;
+            --text-overlay-transform: translateX(-50%);
+            --text-overlay-font-size: 1.6em;
+            --text-overlay-max-width: 90vw;
+            --text-overlay-padding: 0.5em 1.5em;
+            --text-overlay-mobile-font-size: 0.9em;
+            --text-overlay-mobile-padding: 0.3em 0.7em;
+        }
+        
+        body {
+            background: transparent;
+            margin: 0;
+            overflow: hidden;
+        }
+        #llm-text {
+            position: absolute;
+            bottom: var(--text-overlay-bottom);
+            top: var(--text-overlay-top);
+            left: 0;
+            right: 0;
+            transform: none;
+            color: white;
+            font-size: var(--text-overlay-font-size);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            text-shadow: 2px 2px 8px #000;
+            background: rgba(0,0,0,0.4);
+            border-radius: 16px;
+            padding: var(--text-overlay-padding);
+            width: 100vw;
+            max-width: 100vw;
+            word-break: break-word;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            line-height: 1.3;
+            opacity: 1;
+            transition: opacity 0.2s ease-in-out;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            #llm-text {
+                font-size: var(--text-overlay-mobile-font-size);
+                padding: var(--text-overlay-mobile-padding);
+                line-height: 1.2;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            #llm-text {
+                font-size: 1.4em;
+                line-height: 1.25;
+            }
+        }
+        
+        @media (max-width: 800px) {
+            #llm-text {
+                font-size: 1.2em;
+                line-height: 1.2;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="llm-text" data-fade-duration="200"></div>
+    <script>
+        // Настройки WebSocket для текстового overlay
+        const WS_HOST = '192.168.1.4';
+        const WS_PORT = 31993; // OVERLAY_WS_PORT + 1 (текстовый overlay использует следующий порт)
+        const FADE_DURATION = 200; // мс
+        
+        const textDiv = document.getElementById("llm-text");
+        const fadeDuration = parseInt(textDiv.dataset.fadeDuration) || FADE_DURATION;
+        let updateTimeout = null;
+        
+        function setTextWithFade(newText) {
+            // Отменяем предыдущий таймаут, если он есть
+            if (updateTimeout) {
+                clearTimeout(updateTimeout);
+            }
+            
+            // Если текст тот же самый, не обновляем
+            if (textDiv.textContent === newText) {
+                return;
+            }
+            
+            // Плавное обновление без полного исчезновения
+            textDiv.style.opacity = 0.7;
+            updateTimeout = setTimeout(() => {
+                textDiv.textContent = newText;
+                textDiv.style.opacity = 1;
+                updateTimeout = null;
+            }, fadeDuration);
+        }
+        
+        function connectWS() {
+            const ws = new WebSocket(`ws://${WS_HOST}:${WS_PORT}`);
+            ws.onmessage = (event) => {
+                setTextWithFade(event.data);
+            };
+            ws.onclose = () => {
+                setTimeout(connectWS, 1000);
+            };
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            ws.onopen = () => {
+                console.log(`Connected to text overlay WebSocket at ws://${WS_HOST}:${WS_PORT}`);
+            };
+        }
+        connectWS();
+    </script>
+</body>
+</html>
+
