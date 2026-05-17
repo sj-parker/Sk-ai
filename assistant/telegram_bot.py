@@ -9,7 +9,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filte
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = "7871375085:AAFg2pmXeYBJcCBbeQ3gO7GB9EAheoIuwQo"  # Замени на свой токен
+BOT_TOKEN = ""  # Замени на свой токен
 
 from audio_output import chat_stream_ollama
 from memory.user_context import get_user_context, save_user_memory, handle_memory_commands  # ✅ индивидуальная память и роли
